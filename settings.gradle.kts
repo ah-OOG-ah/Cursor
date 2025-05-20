@@ -18,3 +18,5 @@ pluginManagement {
 plugins {
     id("com.gtnewhorizons.gtnhsettingsconvention") version("1.0.38")
 }
+
+include("inspector")

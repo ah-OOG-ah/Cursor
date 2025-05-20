@@ -1,26 +1,37 @@
-
-
-var inspector = sourceSets.create("inspector") {
-    java.srcDir("src/inspector/java")
+plugins {
+    id("application")
 }
 
-tasks {
-    val inspectorJar = register<Jar>("buildInspector") {
-        group = "build"
-        description = "Build JAR for Inspector"
-        archiveBaseName = "inspector"
+repositories {
+    mavenCentral()
+}
 
-        manifest {
-            attributes("Main-Class" to "klaxon.klaxon.inspector.Inspector")
-        }
+dependencies {
+    implementation("org.openjdk.jol:jol-core:0.10")
+}
 
-        from(inspector.output)
-    }
-
-    register<JavaExec>("runInspector") {
-        group = "build"
-        description = "Run Inspector"
-
-        classpath = files(inspectorJar)
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
+
+application {
+    applicationName = "inspector"
+    mainClass = "klaxon.klaxon.inspector.Inspector"
+}
+
+val runTask = tasks.register<JavaExec>("runInspector") {
+    group = "application"
+
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(24))
+    }
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = application.mainClass
+
+    jvmArgs = listOf("-Djdk.attach.allowAttachSelf", "-XX:+EnableDynamicAgentLoading", "-Djol.tryWithSudo=true")
+}
+
+//tasks.replace("run", JavaExec::class).dependsOn(runTask)
