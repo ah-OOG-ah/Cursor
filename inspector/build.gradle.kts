@@ -1,5 +1,7 @@
 plugins {
     id("application")
+    id("com.gradleup.shadow")
+    id("me.champeau.jmh") version "0.7.3"
 }
 
 repositories {
@@ -21,7 +23,17 @@ application {
     mainClass = "klaxon.klaxon.inspector.Inspector"
 }
 
-val runTask = tasks.register<JavaExec>("runInspector") {
+tasks.jar {
+    manifest {
+        attributes(
+            "Main-Class" to application.mainClass,
+            "Premain-Class" to "org.openjdk.jol.vm.InstrumentationSupport",
+            "Launcher-Agent-Class" to "org.openjdk.jol.vm.InstrumentationSupport\$Installer"
+        )
+    }
+}
+
+tasks.register<JavaExec>("runInspector") {
     group = "application"
 
     javaLauncher = javaToolchains.launcherFor {
@@ -33,5 +45,41 @@ val runTask = tasks.register<JavaExec>("runInspector") {
 
     jvmArgs = listOf("-Djdk.attach.allowAttachSelf", "-XX:+EnableDynamicAgentLoading", "-Djol.tryWithSudo=true")
 }
+
+jmh {
+    jvmArgs = listOf(
+        "-XX:+UnlockDiagnosticVMOptions",
+        "-XX:+UnlockExperimentalVMOptions",
+        "-XX:+PrintAssembly",
+        "-XX:PrintAssemblyOptions=intel"
+        //"-XX:CompileCommand=print,*NoiseGeneratorImproved.populateNoiseArray" //,PrintNativeNMethods,PrintSignatureHandlers,PrintAdapterHandlers"
+    )
+}
+
+/*
+tasks.register<JavaExec>("runTarget") {
+    group = "application"
+
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(24))
+    }
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "klaxon.klaxon.inspector.Target"
+
+    jvmArgs = listOf(
+        "-XX:+UnlockDiagnosticVMOptions",
+        "-XX:+UnlockExperimentalVMOptions",
+        "-XX:+PrintAssembly",
+        "-XX:+PrintNMethods",
+        "-XX:+PrintNativeNMethods",
+        "-XX:+PrintSignatureHandlers",
+        "-XX:+PrintAdapterHandlers",
+        "-XX:-TieredCompilation",
+        "-XX:TieredStopAtLevel=2",
+        "-XX:CompileThreshold=0"
+    )
+}
+*/
 
 //tasks.replace("run", JavaExec::class).dependsOn(runTask)
