@@ -1,4 +1,5 @@
 const std = @import("std");
+const root = @import("root.zig");
 
 pub fn main() !void {
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
@@ -11,7 +12,21 @@ pub fn main() !void {
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    var tmp = root.FakeF64JArray { .buffer = undefined };
+    @memset(&tmp.buffer, 0);
+
+    const c2_ptr: [*c]root.f64JArray = @ptrCast(&tmp);
+    root.populateNoiseArray(c2_ptr, 1.0, 10.0, 0.0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0);
+    const cptr = @as([*c]f64, @ptrCast(c2_ptr)) + 2;
+
+    for (0..(tmp.size/8)) |i| {
+        try stdout.print("{} ", .{i});
+        for (0..8) |ii| {
+            try stdout.print(" {}", .{ cptr[i * 8 + ii] });
+            // try stdout.print(" 0x{x:0>4}", .{ cptr[i * 8 + ii] });
+        }
+        try stdout.print("\n", .{});
+    }
 
     try bw.flush(); // don't forget to flush!
 }
