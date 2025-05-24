@@ -1,17 +1,16 @@
 const std = @import("std");
 const root = @import("root.zig");
 
-fn Result(comptime t: anytype) type {
+fn Result(comptime T: type) type {
     return struct {
-        raw: []u8,
-        ret: t
+        raw: [] align(@alignOf(T)) u8,
+        ret: T
     };
 }
 
 fn alloc_f64JArray(allocator: std.mem.Allocator, size: usize) error{OutOfMemory}!Result(*root.f64JArray) {
     const raw = try allocator.alignedAlloc(
         u8, @alignOf(root.f64JArray), @sizeOf(root.f64JArray) - @sizeOf(f64) + size * @sizeOf(f64));
-
 
     @memset(raw, 0);
     const ret = @as(*root.f64JArray, @ptrCast(raw));
@@ -38,11 +37,12 @@ pub fn main() !void {
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
-    const allocation = try alloc_f64JArray(allocator, 256);
+    const SIZE = 4;
+    const allocation = try alloc_f64JArray(allocator, SIZE * SIZE * SIZE);
     defer allocator.free(allocation.raw);
     const c2_ptr = allocation.ret;
 
-    root.populateNoiseArray(c2_ptr, 1.0, 10.0, 0.0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0);
+    root.populateNoiseArray(c2_ptr, 0.0, 0.0, 0.0, SIZE, SIZE, SIZE, 0.1, 0.1, 0.1, 1.0);
     const cptr = root.get_buf(c2_ptr);
 
     for (0..(c2_ptr.size/8)) |i| {

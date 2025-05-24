@@ -21,12 +21,14 @@ pub fn get_buf(arr: *f64JArray) []f64 {
 }
 
 pub export fn populateNoiseArray(
-    noiseArray: [*c]f64JArray,
+    noiseArray: *f64JArray,
     xOffset: f64, yOffset: f64, zOffset: f64,
     xSize: i32, ySize: i32, zSize: i32,
     xScale: f64, yScale: f64, zScale: f64,
     noiseScale: f64) void {
     var buffer = get_buf(noiseArray);
+
+    if (xSize * ySize * zSize != noiseArray.size) return;
 
     for (0..noiseArray.*.size) |i| {
         buffer[i] = xOffset + yOffset + zOffset + @as(f64, @floatFromInt(xSize + ySize + zSize)) + xScale + yScale + zScale + noiseScale;
