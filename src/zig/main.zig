@@ -1,7 +1,33 @@
 const std = @import("std");
 const root = @import("root.zig");
 
+fn Result(comptime t: anytype) type {
+    return struct {
+        raw: []u8,
+        ret: t
+    };
+}
+
+fn alloc_f64JArray(allocator: std.mem.Allocator, size: usize) error{OutOfMemory}!Result(*root.f64JArray) {
+    const raw = try allocator.alignedAlloc(
+        u8, @alignOf(root.f64JArray), @sizeOf(root.f64JArray) - @sizeOf(f64) + size * @sizeOf(f64));
+
+
+    @memset(raw, 0);
+    const ret = @as(*root.f64JArray, @ptrCast(raw));
+    ret.*.size = @intCast(size);
+    return .{ .raw = raw, .ret = ret };
+}
+
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer {
+        const deinit_status = gpa.deinit();
+        // can't try in defer as defer is executed after we return
+        if (deinit_status == .leak) @panic("WARNING: Memory leaked!");
+    }
+
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
 
@@ -12,15 +38,15 @@ pub fn main() !void {
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
-    var tmp = root.FakeF64JArray { .buffer = undefined };
-    @memset(&tmp.buffer, 0);
+    const allocation = try alloc_f64JArray(allocator, 256);
+    defer allocator.free(allocation.raw);
+    const c2_ptr = allocation.ret;
 
-    const c2_ptr: [*c]root.f64JArray = @ptrCast(&tmp);
     root.populateNoiseArray(c2_ptr, 1.0, 10.0, 0.0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0);
-    const cptr = @as([*c]f64, @ptrCast(c2_ptr)) + 2;
+    const cptr = root.get_buf(c2_ptr);
 
-    for (0..(tmp.size/8)) |i| {
-        try stdout.print("{} ", .{i});
+    for (0..(c2_ptr.size/8)) |i| {
+        try stdout.print("0x{x:0>2} ", .{i});
         for (0..8) |ii| {
             try stdout.print(" {}", .{ cptr[i * 8 + ii] });
             // try stdout.print(" 0x{x:0>4}", .{ cptr[i * 8 + ii] });
