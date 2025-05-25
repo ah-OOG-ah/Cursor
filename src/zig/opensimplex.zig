@@ -155,7 +155,8 @@ fn noise3_ImproveXY(seed: i64, x: f64, y: f64, z: f64) f32 {
 // If Z is vertical in world coordinates, call noise3_ImproveXZ(x, Z, y) or use noise3_ImproveXY.
 // For a time varied animation, call noise3_ImproveXZ(x, T, y) or use noise3_ImproveXY.
 //
-pub fn noise3_ImproveXZ(seed: i64, x: f64, y: f64, z: f64) f32 {
+
+pub inline fn noise3_ImproveXZ(seed: i64, x: f64, y: f64, z: f64) f32 {
     // Re-orient the cubic lattices without skewing, so Y points up the main lattice diagonal,
     // and the planes formed by XZ are moved far out of alignment with the cube faces.
     // Orthonormal rotation. Not a skew transform.
@@ -190,7 +191,7 @@ fn noise3_Fallback(seed: i64, x: f64, y: f64, z: f64) f32 {
 //
 // Generate overlapping cubic lattices for 3D OpenSimplex2 noise.
 //
-fn noise3_UnrotatedBase(seed: i64, xr: f64, yr: f64, zr: f64) f32 {
+inline fn noise3_UnrotatedBase(seed: i64, xr: f64, yr: f64, zr: f64) f32 {
     var seedMut = seed;
 
     // Get base points and offsets.
@@ -503,7 +504,7 @@ fn grad2(seed: i64, xsvp: i64, ysvp: i64, dx: f32, dy: f32) f32 {
     return grads[gi | 0] * dx + grads[gi | 1] * dy;
 }
 
-fn grad3(
+inline fn grad3(
     seed: i64, // wrapping
     xrvp: i64, // wrapping
     yrvp: i64, // wrapping
@@ -535,7 +536,7 @@ fn grad4(
     return (grads[gi | 0] * dx + grads[gi | 1] * dy) + (grads[gi | 2] * dz + grads[gi | 3] * dw);
 }
 
-fn fastFloor(x: f64) i32 {
+inline fn fastFloor(x: f64) i32 {
     const xi = @as(i32, @intFromFloat(x));
     if (x < @as(f64, xi)) {
         return xi - 1;
@@ -544,7 +545,7 @@ fn fastFloor(x: f64) i32 {
     }
 }
 
-fn fastRound(x: f64) i32 {
+inline fn fastRound(x: f64) i32 {
     if (x < 0.0) {
         return @intFromFloat(x - 0.5);
     } else {
