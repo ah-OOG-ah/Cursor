@@ -42,7 +42,7 @@ pub fn main() !void {
     defer allocator.free(allocation.raw);
     const c2_ptr = allocation.ret;
 
-    root.populateNoiseArray(c2_ptr, 0.0, 0.0, 0.0, SIZE, SIZE, SIZE, 0.1, 0.1, 0.1, 1.0);
+    root.populateNoiseArray(c2_ptr, 0.2, 0.1, 0.0, SIZE, SIZE, SIZE, 0.1, 0.1, 0.1, 1.0, 1337);
     const cptr = root.get_buf(c2_ptr);
 
     for (0..(c2_ptr.size/8)) |i| {
