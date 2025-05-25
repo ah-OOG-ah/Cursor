@@ -48,7 +48,7 @@ pub fn main() !void {
     for (0..(c2_ptr.size/8)) |i| {
         try stdout.print("0x{x:0>2} ", .{i});
         for (0..8) |ii| {
-            try stdout.print(" {}", .{ cptr[i * 8 + ii] });
+            try stdout.print(" {d: >5.2}", .{ cptr[i * 8 + ii] });
             // try stdout.print(" 0x{x:0>4}", .{ cptr[i * 8 + ii] });
         }
         try stdout.print("\n", .{});
