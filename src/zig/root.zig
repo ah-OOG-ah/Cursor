@@ -19,6 +19,7 @@ pub export fn populateNoiseArray(
     xSize: i32, ySize: i32, zSize: i32,
     xScale: f64, yScale: f64, zScale: f64,
     noiseScale: f64, seed: i64) void {
+    @setFloatMode(.optimized);
     var buffer = get_buf(noiseArray);
 
     if (xSize * ySize * zSize != noiseArray.size) return;
