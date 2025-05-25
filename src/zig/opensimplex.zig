@@ -43,7 +43,7 @@ const RSQUARED_4D: f32 = 0.6;
 //
 // 2D Simplex noise, standard lattice orientation.
 //
-pub fn noise2(seed: i64, x: f64, y: f64) f32 {
+fn noise2(seed: i64, x: f64, y: f64) f32 {
     // Get points for A2* lattice
     const s = SKEW_2D * (x + y);
     const xs = x + s;
@@ -59,7 +59,7 @@ pub fn noise2(seed: i64, x: f64, y: f64) f32 {
 // unless your map is centered around an equator. It's a subtle
 // difference, but the option is here to make it an easy choice.
 //
-pub fn noise2_ImproveX(seed: i64, x: f64, y: f64) f32 {
+fn noise2_ImproveX(seed: i64, x: f64, y: f64) f32 {
     // Skew transform and rotation baked into one.
     const xx = x * ROOT2OVER2;
     const yy = y * (ROOT2OVER2 * (1.0 + 2.0 * SKEW_2D));
@@ -132,7 +132,7 @@ fn noise2_UnskewedBase(seed: i64, xs: f64, ys: f64) f32 {
 // If Z is vertical in world coordinates, call noise3_ImproveXZ(x, y, Z).
 // For a time varied animation, call noise3_ImproveXY(x, y, T).
 //
-pub fn noise3_ImproveXY(seed: i64, x: f64, y: f64, z: f64) f32 {
+fn noise3_ImproveXY(seed: i64, x: f64, y: f64, z: f64) f32 {
     // Re-orient the cubic lattices without skewing, so Z points up the main lattice diagonal,
     // and the planes formed by XY are moved far out of alignment with the cube faces.
     // Orthonormal rotation. Not a skew transform.
@@ -175,7 +175,7 @@ pub fn noise3_ImproveXZ(seed: i64, x: f64, y: f64, z: f64) f32 {
 // Use noise3_ImproveXY or noise3_ImproveXZ instead, wherever appropriate.
 // They have less diagonal bias. This function's best use is as a fallback.
 //
-pub fn noise3_Fallback(seed: i64, x: f64, y: f64, z: f64) f32 {
+fn noise3_Fallback(seed: i64, x: f64, y: f64, z: f64) f32 {
     // Re-orient the cubic lattices via rotation, to produce a familiar look.
     // Orthonormal rotation. Not a skew transform.
     const r = FALLBACK_ROTATE_3D * (x + y + z);
@@ -307,7 +307,7 @@ fn noise3_UnrotatedBase(seed: i64, xr: f64, yr: f64, zr: f64) f32 {
 // Recommended for time-varied animations which texture a 3D object (W=time)
 // in a space where Z is vertical
 //
-pub fn noise4_ImproveXYZ_ImproveXY(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
+fn noise4_ImproveXYZ_ImproveXY(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
     const xy = x + y;
     const s2 = xy * -0.21132486540518699998;
     const zz = z * 0.28867513459481294226;
@@ -326,7 +326,7 @@ pub fn noise4_ImproveXYZ_ImproveXY(seed: i64, x: f64, y: f64, z: f64, w: f64) f3
 // Recommended for time-varied animations which texture a 3D object (W=time)
 // in a space where Y is vertical
 //
-pub fn noise4_ImproveXYZ_ImproveXZ(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
+fn noise4_ImproveXYZ_ImproveXZ(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
     const xz = x + z;
     const s2 = xz * -0.21132486540518699998;
     const yy = y * 0.28867513459481294226;
@@ -345,7 +345,7 @@ pub fn noise4_ImproveXYZ_ImproveXZ(seed: i64, x: f64, y: f64, z: f64, w: f64) f3
 // Recommended for time-varied animations which texture a 3D object (W=time)
 // where there isn't a clear distinction between horizontal and vertical
 //
-pub fn noise4_ImproveXYZ(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
+fn noise4_ImproveXYZ(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
     const xyz = x + y + z;
     const ww = w * 0.2236067977499788;
     const s2 = xyz * -0.16666666666666666 + ww;
@@ -362,7 +362,7 @@ pub fn noise4_ImproveXYZ(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
 // Recommended for 3D terrain, where X and Y (or Z and W) are horizontal.
 // Recommended for noise(x, y, sin(time), cos(time)) trick.
 //
-pub fn noise4_ImproveXY_ImproveZW(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
+fn noise4_ImproveXY_ImproveZW(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
     const s2 = (x + y) * -0.178275657951399372 + (z + w) * 0.215623393288842828;
     const t2 = (z + w) * -0.403949762580207112 + (x + y) * -0.375199083010075342;
     const xs = x + s2;
@@ -376,7 +376,7 @@ pub fn noise4_ImproveXY_ImproveZW(seed: i64, x: f64, y: f64, z: f64, w: f64) f32
 //
 // 4D OpenSimplex2 noise, fallback lattice orientation.
 //
-pub fn noise4_Fallback(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
+fn noise4_Fallback(seed: i64, x: f64, y: f64, z: f64, w: f64) f32 {
     // Get points for A4 lattice
     const s: f64 = @as(f64, SKEW_4D) * (x + y + z + w);
     const xs: f64 = x + s;
