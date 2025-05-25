@@ -1,23 +1,6 @@
 const std = @import("std");
 const root = @import("root.zig");
 
-fn Result(comptime T: type) type {
-    return struct {
-        raw: [] align(@alignOf(T)) u8,
-        ret: T
-    };
-}
-
-fn alloc_f64JArray(allocator: std.mem.Allocator, size: usize) error{OutOfMemory}!Result(*root.f64JArray) {
-    const raw = try allocator.alignedAlloc(
-        u8, @alignOf(root.f64JArray), @sizeOf(root.f64JArray) - @sizeOf(f64) + size * @sizeOf(f64));
-
-    @memset(raw, 0);
-    const ret = @as(*root.f64JArray, @ptrCast(raw));
-    ret.*.size = @intCast(size);
-    return .{ .raw = raw, .ret = ret };
-}
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -38,7 +21,7 @@ pub fn main() !void {
     const stdout = bw.writer();
 
     const SIZE = 4;
-    const allocation = try alloc_f64JArray(allocator, SIZE * SIZE * SIZE);
+    const allocation = try root.alloc_f64JArray(allocator, SIZE * SIZE * SIZE);
     defer allocator.free(allocation.raw);
     const c2_ptr = allocation.ret;
 

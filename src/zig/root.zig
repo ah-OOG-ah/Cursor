@@ -1,6 +1,24 @@
 const std = @import("std");
 const testing = std.testing;
 const opensimplex = @import("opensimplex.zig");
+const zbench = @import("zbench");
+
+fn Result(comptime T: type) type {
+    return struct {
+        raw: [] align(@alignOf(T)) u8,
+        ret: T
+    };
+}
+
+pub fn alloc_f64JArray(allocator: std.mem.Allocator, size: usize) error{OutOfMemory}!Result(*f64JArray) {
+    const raw = try allocator.alignedAlloc(
+        u8, @alignOf(f64JArray), @sizeOf(f64JArray) - @sizeOf(f64) + size * @sizeOf(f64));
+
+    @memset(raw, 0);
+    const ret = @as(*f64JArray, @ptrCast(raw));
+    ret.*.size = @intCast(size);
+    return .{ .raw = raw, .ret = ret };
+}
 
 pub const f64JArray = extern struct {
     _opauqe1: u64,
