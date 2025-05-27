@@ -233,7 +233,7 @@ inline fn noise3_UnrotatedBase(seed: i64, xr: f64, yr: f64, zr: f64) f32 {
                 b -= 1.0;
                 value += (b * b) * (b * b) * grad3(
                 seedMut,
-                xrbp - @as(i64, xNSign) *% PRIME_X, yrbp, zrbp,
+                xrbp -% @as(i64, xNSign) *% PRIME_X, yrbp, zrbp,
                 xri + @as(f32, @floatFromInt(xNSign)), yri, zri
                 );
             }
@@ -244,7 +244,7 @@ inline fn noise3_UnrotatedBase(seed: i64, xr: f64, yr: f64, zr: f64) f32 {
                 value += (b * b) * (b * b) * grad3(
                     seedMut,
                     xrbp,
-                    yrbp - @as(i64, yNSign) *% PRIME_Y,
+                    yrbp -% @as(i64, yNSign) *% PRIME_Y,
                     zrbp,
                     xri,
                     yri + @as(f32, @floatFromInt(yNSign)),
@@ -259,7 +259,7 @@ inline fn noise3_UnrotatedBase(seed: i64, xr: f64, yr: f64, zr: f64) f32 {
                 seedMut,
                 xrbp,
                 yrbp,
-                zrbp - @as(i64, zNSign) *% PRIME_Z,
+                zrbp -% @as(i64, zNSign) *% PRIME_Z,
                 xri,
                 yri,
                 zri + @as(f32, @floatFromInt(zNSign)),
@@ -286,9 +286,9 @@ inline fn noise3_UnrotatedBase(seed: i64, xr: f64, yr: f64, zr: f64) f32 {
         a += (0.75 - ax0) - (ay0 + az0);
 
         // Update prime for hash.
-        xrbp += (@as(i64, xNSign) >> 1) & PRIME_X;
-        yrbp += (@as(i64, yNSign) >> 1) & PRIME_Y;
-        zrbp += (@as(i64, zNSign) >> 1) & PRIME_Z;
+        xrbp +%= (@as(i64, xNSign) >> 1) & PRIME_X;
+        yrbp +%= (@as(i64, yNSign) >> 1) & PRIME_Y;
+        zrbp +%= (@as(i64, zNSign) >> 1) & PRIME_Z;
 
         // Update the reverse sign indicators.
         xNSign = -xNSign;
