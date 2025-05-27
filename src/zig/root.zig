@@ -10,9 +10,13 @@ fn Result(comptime T: type) type {
     };
 }
 
-pub fn alloc_f64JArray(allocator: std.mem.Allocator, size: usize) error{OutOfMemory}!Result(*f64JArray) {
-    const raw = try allocator.alignedAlloc(
-        u8, @alignOf(f64JArray), @sizeOf(f64JArray) - @sizeOf(f64) + size * @sizeOf(f64));
+pub fn alloc_f64JArray(allocator: std.mem.Allocator, size: usize) ?Result(*f64JArray) {
+    const raw = allocator.alignedAlloc(
+        u8, @alignOf(f64JArray), @sizeOf(f64JArray) - @sizeOf(f64) + size * @sizeOf(f64))
+    catch {
+        std.log.debug("Allocation failed!", .{});
+        return null;
+    };
 
     @memset(raw, 0);
     const ret = @as(*f64JArray, @ptrCast(raw));
