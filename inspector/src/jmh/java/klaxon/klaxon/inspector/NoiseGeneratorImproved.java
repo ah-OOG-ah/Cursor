@@ -8,7 +8,7 @@ import java.util.Random;
 import org.openjdk.jmh.annotations.CompilerControl;
 
 public class NoiseGeneratorImproved {
-    private static final Random random = new Random();
+    private static final Random random = new Random(1337);
     private static final int[] permutations = new int[512];
     public static double xCoord = random.nextDouble() * 256.0D;
     public static double yCoord = random.nextDouble() * 256.0D;
