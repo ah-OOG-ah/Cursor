@@ -21,7 +21,12 @@ pub fn main() !void {
     const stdout = bw.writer();
 
     const SIZE = 4;
-    const allocation = try root.alloc_f64JArray(allocator, SIZE * SIZE * SIZE);
+    const a = root.alloc_f64JArray(allocator, SIZE * SIZE * SIZE);
+    if (a == null) {
+        return;
+    }
+
+    const allocation = a.?;
     defer allocator.free(allocation.raw);
     const c2_ptr = allocation.ret;
 
