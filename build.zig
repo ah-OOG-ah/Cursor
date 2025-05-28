@@ -23,9 +23,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    lib.root_module.addAnonymousImport("zbench", .{
-        .root_source_file = b.path("src/zig/zbench/zbench.zig"),
-    });
 
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
@@ -37,9 +34,6 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/zig/main.zig"),
         .target = target,
         .optimize = optimize,
-    });
-    exe.root_module.addAnonymousImport("zbench", .{
-        .root_source_file = b.path("src/zig/zbench/zbench.zig"),
     });
 
     // This declares intent for the executable to be installed into the
