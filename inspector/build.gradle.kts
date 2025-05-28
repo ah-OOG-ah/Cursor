@@ -33,6 +33,13 @@ tasks.jar {
     }
 }
 
+val compileZig = tasks.register<Exec>("compileZig") {
+    group = "build"
+
+    workingDir = File("../")
+    commandLine = listOf("zig", "build", "-Doptimize=ReleaseFast")
+}
+
 tasks.register<JavaExec>("runInspector") {
     group = "application"
 
@@ -56,30 +63,6 @@ jmh {
     )
 }
 
-/*
-tasks.register<JavaExec>("runTarget") {
-    group = "application"
-
-    javaLauncher = javaToolchains.launcherFor {
-        languageVersion.set(JavaLanguageVersion.of(24))
-    }
-
-    classpath = sourceSets["main"].runtimeClasspath
-    mainClass = "klaxon.klaxon.inspector.Target"
-
-    jvmArgs = listOf(
-        "-XX:+UnlockDiagnosticVMOptions",
-        "-XX:+UnlockExperimentalVMOptions",
-        "-XX:+PrintAssembly",
-        "-XX:+PrintNMethods",
-        "-XX:+PrintNativeNMethods",
-        "-XX:+PrintSignatureHandlers",
-        "-XX:+PrintAdapterHandlers",
-        "-XX:-TieredCompilation",
-        "-XX:TieredStopAtLevel=2",
-        "-XX:CompileThreshold=0"
-    )
+tasks.jmh {
+    dependsOn += compileZig
 }
-*/
-
-//tasks.replace("run", JavaExec::class).dependsOn(runTask)
