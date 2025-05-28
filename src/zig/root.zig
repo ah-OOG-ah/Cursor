@@ -36,15 +36,14 @@ pub fn get_buf(arr: *f64JArray) []f64 {
 }
 
 pub export fn populateNoiseArray(
-    noiseArray: *f64JArray,
+    noiseArray: [*]f64,
     xOffset: f64, yOffset: f64, zOffset: f64,
     xSize: i32, ySize: i32, zSize: i32,
     xScale: f64, yScale: f64, zScale: f64,
     noiseScale: f64, seed: i64) void {
     @setFloatMode(.optimized);
-    var buffer = get_buf(noiseArray);
+    var buffer = noiseArray[0..@as(usize, @intCast(xSize * ySize * zSize))];
 
-    if (xSize * ySize * zSize != noiseArray.size) return;
     const xMax = @as(usize, @intCast(xSize));
     const yMax = @as(usize, @intCast(ySize));
     const zMax = @as(usize, @intCast(zSize));
