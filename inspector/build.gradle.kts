@@ -14,7 +14,7 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion.set(JavaLanguageVersion.of(25))
     }
 }
 
@@ -37,7 +37,7 @@ tasks.register<JavaExec>("runInspector") {
     group = "application"
 
     javaLauncher = javaToolchains.launcherFor {
-        languageVersion.set(JavaLanguageVersion.of(24))
+        languageVersion.set(JavaLanguageVersion.of(25))
     }
 
     classpath = sourceSets["main"].runtimeClasspath
