@@ -1,3 +1,0 @@
-[submodule "src/zig/zbench"]
-	path = src/zig/zbench
-	url = https://github.com/hendriknielaender/zBench
