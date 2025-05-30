@@ -54,13 +54,14 @@ public class Target {
         final boolean THIN = true;
         final int thith = 1;
         final var noise = new double[THIN ? SIZE * thith * SIZE : SIZE * SIZE * SIZE];
-        NoiseGeneratorImproved.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, 0.1, 0.1, 0.1, 1.0);
+        final var SCALE = 0.01;
+        NoiseGeneratorImproved.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0);
         final int RL = noise.length / SIZE;
         printNoiseResults(noise, RL, false);
         writeNoiseAsPNG(noise, new File("mc.png"), SIZE, THIN ? thith : SIZE, SIZE);
 
         setup();
-        populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, 0.1, 0.1, 0.1, 1.0, 1337);
+        populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0, 1337);
         printNoiseResults(noise, RL, false);
         writeNoiseAsPNG(noise, new File("mine.png"), SIZE, THIN ? thith : SIZE, SIZE);
     }
@@ -99,11 +100,11 @@ public class Target {
 
     private static void writeNoiseAsPNG(double[] noise, File output, int x, int y, int z) {
         if (!output.getName().endsWith(".png")) throw new RuntimeException();
-
+        final var noiseRange = 1.0;
         final var img = new BufferedImage(x, y * z, BufferedImage.TYPE_BYTE_GRAY);
         for (int px = 0; px < x; px++) {
             for (int py = 0; py < z * y; ++py) {
-                final var clamp = (max(min(noise[px * z * y + py], 1.0), -1.0) + 1.0) / 2.0;
+                final var clamp = (max(min(noise[px * z * y + py], noiseRange), -noiseRange) + noiseRange) / (2 * noiseRange);
                 // clamp is now 0 - 1
                 final byte i = (byte) Math.toIntExact(round(clamp * 255));
                 final int color = 0xFF_00_00_00 | i << 16 | i << 8 | i;
