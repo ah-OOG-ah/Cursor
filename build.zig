@@ -15,19 +15,29 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
-        .name = "Cursor",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
+    const lib_mod = b.addModule("Cursor", .{
         .root_source_file = b.path("src/zig/root.zig"),
         .target = target,
-        .optimize = optimize,
+        .optimize = optimize
     });
 
-    // This declares intent for the library to be installed into the standard
-    // location when the user invokes the "install" step (the default step when
-    // running `zig build`).
-    b.installArtifact(lib);
+    const libJ_mod = b.addModule("Cursor", .{
+        .root_source_file = b.path("src/zig/root.zig"),
+        .target = target,
+        .optimize = .ReleaseFast
+    });
+
+    const lib = b.addLibrary(.{
+        .name = "Cursor",
+        .root_module = lib_mod,
+        .linkage = .static
+    });
+
+    const libJ = b.addLibrary(.{
+        .name = "Cursor",
+        .root_module = libJ_mod,
+        .linkage = .dynamic
+    });
 
     const exe = b.addExecutable(.{
         .name = "Cursor",
@@ -36,9 +46,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
+    b.installArtifact(lib);
+    b.installArtifact(libJ);
     b.installArtifact(exe);
 
     // This *creates* a Run step in the build graph, to be executed when another
