@@ -38,3 +38,5 @@ addon.late.local.gradle.kts
 layout.json
 .zig-cache
 zig-out
+mc.png
+mine.png
