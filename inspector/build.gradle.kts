@@ -37,7 +37,13 @@ val compileZig = tasks.register<Exec>("compileZig") {
     group = "build"
 
     workingDir = File("../")
-    commandLine = listOf("zig", "build", "-Doptimize=ReleaseFast")
+    commandLine = listOf("zig", "build")
+}
+
+val copyZigNatives = tasks.register<Copy>("copyZigNatives") {
+    from(File(rootProject.rootDir, "zig-out/lib/libCursor.so"))
+    into(project.layout.buildDirectory)
+    dependsOn += compileZig
 }
 
 tasks.register<JavaExec>("runInspector") {
@@ -64,5 +70,5 @@ jmh {
 }
 
 tasks.jmh {
-    dependsOn += compileZig
+    dependsOn += copyZigNatives
 }
