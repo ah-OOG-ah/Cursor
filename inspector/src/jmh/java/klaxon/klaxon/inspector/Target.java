@@ -1,8 +1,24 @@
 package klaxon.klaxon.inspector;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static java.lang.Math.round;
+import static java.lang.Math.sqrt;
+import static java.lang.foreign.FunctionDescriptor.ofVoid;
+import static java.lang.foreign.ValueLayout.ADDRESS;
+import static java.lang.foreign.ValueLayout.JAVA_DOUBLE;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.JAVA_LONG;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.Linker;
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
+import java.lang.invoke.MethodHandle;
+import javax.imageio.ImageIO;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Setup;
@@ -13,31 +29,75 @@ import org.openjdk.jmh.infra.Blackhole;
 @Measurement(iterations = 1, batchSize = 1)
 public class Target {
 
+    private static MethodHandle zmh_populateNoiseArray;
+
     public static void main(String[] args) {
         final int SIZE = 512;
-        final var noise = new double[SIZE * SIZE * SIZE];
-        NoiseGeneratorImproved.populateNoiseArray(noise, 0, 0, 0, SIZE, SIZE, SIZE, 0.1, 0.1, 0.1, 1.0);
-        final int RL = SIZE * SIZE; // / 2;
+        final boolean THIN = true;
+        final int thith = 1;
+        final var noise = new double[THIN ? SIZE * thith * SIZE : SIZE * SIZE * SIZE];
+        NoiseGeneratorImproved.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, 0.1, 0.1, 0.1, 1.0);
+        final int RL = noise.length / SIZE;
+        printNoiseResults(noise, RL, false);
+        writeNoiseAsPNG(noise, new File("mc.png"), SIZE, THIN ? thith : SIZE, SIZE);
 
+        setup();
+        populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, 0.1, 0.1, 0.1, 1.0, 1337);
+        printNoiseResults(noise, RL, false);
+        writeNoiseAsPNG(noise, new File("mine.png"), SIZE, THIN ? thith : SIZE, SIZE);
+    }
+
+    private static void printNoiseResults(double[] noise, int runLength, boolean printDetails) {
         double max = Double.MIN_VALUE;
         double min = Double.MAX_VALUE;
         double avg = 0;
-        for (int i = 0; i < noise.length / RL; ++i) {
-            //System.out.print(fmtHex(i * RL, '0', 4));
-            for (int ii = 0; ii < RL; ++ii) {
-                final var d = noise[i * RL + ii];
-                max = Math.max(d, max);
+
+        for (int i = 0; i < noise.length / runLength; ++i) {
+            if (printDetails) System.out.print(fmtHex(i * runLength, '0', 4));
+            for (int ii = 0; ii < runLength; ++ii) {
+                final var d = noise[i * runLength + ii];
+                max = max(d, max);
                 min = Math.min(d, min);
                 avg += d;
 
-                //System.out.printf(" %5.2f", d);
+                if (printDetails) System.out.printf(" %5.2f", d);
             }
-            //System.out.print("\n");
+            if (printDetails) System.out.print("\n");
         }
 
         avg /= noise.length;
 
-        System.out.printf("Max: %.2f\nAvg: %.2f\nMin: %.2f\n", max, avg, min);
+        double deviationsSquared = 0;
+        for (int i = 0; i < noise.length; ++i) {
+            final var deviation = noise[i] - avg;
+            deviationsSquared += deviation * deviation;
+        }
+        double variance = deviationsSquared / (noise.length - 1);
+        double sStdev = sqrt(variance);
+
+        System.out.printf("Max: %f\nAvg: %f\nMin: %f\n", max, avg, min);
+        System.out.printf("Standard deviation: %f\n", sStdev);
+    }
+
+    private static void writeNoiseAsPNG(double[] noise, File output, int x, int y, int z) {
+        if (!output.getName().endsWith(".png")) throw new RuntimeException();
+
+        final var img = new BufferedImage(x, y * z, BufferedImage.TYPE_BYTE_GRAY);
+        for (int px = 0; px < x; px++) {
+            for (int py = 0; py < z * y; ++py) {
+                final var clamp = (max(min(noise[px * z * y + py], 1.0), -1.0) + 1.0) / 2.0;
+                // clamp is now 0 - 1
+                final byte i = (byte) Math.toIntExact(round(clamp * 255));
+                final int color = 0xFF_00_00_00 | i << 16 | i << 8 | i;
+                img.setRGB(px, py, color);
+            }
+        }
+
+        try {
+            ImageIO.write(img, "png", output);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -49,7 +109,39 @@ public class Target {
     public static void setup() {
         final var linker = Linker.nativeLinker();
         final var globalArena = Arena.global();
-        final var zig = SymbolLookup.libraryLookup("natives", globalArena);
+        final var zig = SymbolLookup.libraryLookup("inspector/build/libCursor.so", globalArena);
+        zmh_populateNoiseArray = linker.downcallHandle(
+            zig.findOrThrow("populateNoiseArray"),
+            ofVoid(ADDRESS,
+                JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
+                JAVA_INT, JAVA_INT, JAVA_INT,
+                JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
+                JAVA_DOUBLE, JAVA_LONG, JAVA_DOUBLE),
+            Linker.Option.critical(true)
+        );
+    }
+
+    public static void populateNoiseArray(
+        double[] noiseArray,
+        double xOffset, double yOffset, double zOffset,
+        int xSize, int ySize, int zSize,
+        double xScale, double yScale, double zScale,
+        double noiseScale, long seed) {
+
+        final MemorySegment wrappedNoise = MemorySegment.ofArray(noiseArray);
+        // Required to make range match MC's. It's not *that* close, but it's close enough... probably
+        noiseScale *= 1.291408 / 2.0;
+        double offset = -0.445328;
+
+        try {
+            zmh_populateNoiseArray.invokeExact(wrappedNoise,
+                xOffset, yOffset, zOffset,
+                xSize, ySize, zSize,
+                xScale, yScale, zScale,
+                noiseScale, seed, offset);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Benchmark

@@ -12,10 +12,14 @@ pub fn main() !void {
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
-    const SIZE = 4;
-    var noise: [SIZE * SIZE * SIZE]f64 = undefined;
+    const SIZE = 512;
+    var noise: [SIZE * 1 * SIZE]f64 = undefined;
 
-    root.populateNoiseArray(@ptrCast(&noise), 0.2, 0.1, 0.0, SIZE, SIZE, SIZE, 0.1, 0.1, 0.1, 1.0, 1337);
+    root.populateNoiseArray(@ptrCast(&noise),
+        0.2, 0.1, 0.0,
+        SIZE, 1, SIZE,
+        0.1, 0.1, 0.1,
+        1.0, 1337, 0.0);
 
     for (0..(noise.len/8)) |i| {
         try stdout.print("0x{x:0>2} ", .{i});

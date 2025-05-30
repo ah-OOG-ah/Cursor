@@ -57,15 +57,15 @@ public class NoiseGeneratorImproved {
         int xSize, int ySize, int zSize,
         double xScale, double yScale, double zScale,
         double noiseScale) {
-        int l;
+        int permBIX;
         int i1;
-        double d9;
-        double d11;
-        int l1;
-        double d12;
-        int i2;
-        int j2;
-        double d13;
+        double floatX;
+        double shufFX;
+        int zpos;
+        double floatZ;
+        int intZ;
+        int byteFromIntZ;
+        double shufZ;
         int k5;
         int j6;
 
@@ -73,62 +73,62 @@ public class NoiseGeneratorImproved {
             double d21;
             double d22;
             k5 = 0;
-            double d23 = 1.0D / noiseScale;
+            double inverseNoiseScale = 1.0D / noiseScale;
 
-            for (int j1 = 0; j1 < xSize; ++j1) {
-                d9 = xOffset + (double)j1 * xScale + xCoord;
-                int i6 = (int)d9;
+            for (int xpos = 0; xpos < xSize; ++xpos) {
+                floatX = xOffset + (double)xpos * xScale + xCoord;
+                int intX = (int)floatX;
 
-                if (d9 < (double)i6) {
-                    --i6;
+                if (floatX < (double)intX) {
+                    --intX;
                 }
 
-                int k1 = i6 & 255;
-                d9 -= i6;
-                d11 = d9 * d9 * d9 * (d9 * (d9 * 6.0D - 15.0D) + 10.0D);
+                int byteOfIntX = intX & 255;
+                floatX -= intX;
+                shufFX = floatX * floatX * floatX * (floatX * (floatX * 6.0D - 15.0D) + 10.0D);
 
-                for (l1 = 0; l1 < zSize; ++l1) {
-                    d12 = zOffset + (double)l1 * zScale + zCoord;
-                    i2 = (int)d12;
+                for (zpos = 0; zpos < zSize; ++zpos) {
+                    floatZ = zOffset + (double)zpos * zScale + zCoord;
+                    intZ = (int)floatZ;
 
-                    if (d12 < (double)i2) {
-                        --i2;
+                    if (floatZ < (double)intZ) {
+                        --intZ;
                     }
 
-                    j2 = i2 & 255;
-                    d12 -= i2;
-                    d13 = d12 * d12 * d12 * (d12 * (d12 * 6.0D - 15.0D) + 10.0D);
-                    l = permutations[k1];
-                    int i4 = permutations[l] + j2;
-                    int j4 = permutations[k1 + 1];
-                    i1 = permutations[j4] + j2;
-                    d21 = lerp(d11, func_76309_a(permutations[i4], d9, d12), grad(permutations[i1], d9 - 1.0D, 0.0D, d12));
-                    d22 = lerp(d11, grad(permutations[i4 + 1], d9, 0.0D, d12 - 1.0D), grad(permutations[i1 + 1], d9 - 1.0D, 0.0D, d12 - 1.0D));
-                    double d24 = lerp(d13, d21, d22);
+                    byteFromIntZ = intZ & 255;
+                    floatZ -= intZ;
+                    shufZ = floatZ * floatZ * floatZ * (floatZ * (floatZ * 6.0D - 15.0D) + 10.0D);
+                    permBIX = permutations[byteOfIntX];
+                    int i4 = permutations[permBIX] + byteFromIntZ;
+                    int j4 = permutations[byteOfIntX + 1];
+                    i1 = permutations[j4] + byteFromIntZ;
+                    d21 = lerp(shufFX, func_76309_a(permutations[i4], floatX, floatZ), grad(permutations[i1], floatX - 1.0D, 0.0D, floatZ));
+                    d22 = lerp(shufFX, grad(permutations[i4 + 1], floatX, 0.0D, floatZ - 1.0D), grad(permutations[i1 + 1], floatX - 1.0D, 0.0D, floatZ - 1.0D));
+                    double d24 = lerp(shufZ, d21, d22);
                     j6 = k5++;
-                    noiseArray[j6] += d24 * d23;
+                    noiseArray[j6] += d24 * inverseNoiseScale;
                 }
             }
         } else {
-            l = 0;
+            permBIX = 0;
             double d7 = 1.0D / noiseScale;
             i1 = -1;
             double d8 = 0.0D;
-            d9 = 0.0D;
+            floatX = 0.0D;
             double d10 = 0.0D;
-            d11 = 0.0D;
+            shufFX = 0.0D;
 
-            for (l1 = 0; l1 < xSize; ++l1) {
-                d12 = xOffset + (double)l1 * xScale + xCoord;
-                i2 = (int)d12;
+            for (zpos = 0; zpos < xSize; ++zpos) {
+                floatZ = xOffset + (double)zpos * xScale + xCoord;
+                intZ = (int)floatZ;
 
-                if (d12 < (double)i2) {
-                    --i2;
+                if (floatZ < (double)intZ) {
+                    --intZ;
                 }
 
-                j2 = i2 & 255;
-                d12 -= i2;
-                d13 = d12 * d12 * d12 * (d12 * (d12 * 6.0D - 15.0D) + 10.0D);
+                byteFromIntZ = intZ & 255;
+                floatZ -= intZ;
+                shufZ = floatZ * floatZ * floatZ * (floatZ * (floatZ * 6.0D - 15.0D) + 10.0D);
 
                 for (int k2 = 0; k2 < zSize; ++k2) {
                     double d14 = zOffset + (double)k2 * zScale + zCoord;
@@ -156,22 +156,22 @@ public class NoiseGeneratorImproved {
 
                         if (j3 == 0 || l3 != i1) {
                             i1 = l3;
-                            int k4 = permutations[j2] + l3;
+                            int k4 = permutations[byteFromIntZ] + l3;
                             int l4 = permutations[k4] + i3;
                             int i5 = permutations[k4 + 1] + i3;
-                            int j5 = permutations[j2 + 1] + l3;
+                            int j5 = permutations[byteFromIntZ + 1] + l3;
                             k5 = permutations[j5] + i3;
                             int l5 = permutations[j5 + 1] + i3;
-                            d8 = lerp(d13, grad(permutations[l4], d12, d16, d14), grad(permutations[k5], d12 - 1.0D, d16, d14));
-                            d9 = lerp(d13, grad(permutations[i5], d12, d16 - 1.0D, d14), grad(permutations[l5], d12 - 1.0D, d16 - 1.0D, d14));
-                            d10 = lerp(d13, grad(permutations[l4 + 1], d12, d16, d14 - 1.0D), grad(permutations[k5 + 1], d12 - 1.0D, d16, d14 - 1.0D));
-                            d11 = lerp(d13, grad(permutations[i5 + 1], d12, d16 - 1.0D, d14 - 1.0D), grad(permutations[l5 + 1], d12 - 1.0D, d16 - 1.0D, d14 - 1.0D));
+                            d8 = lerp(shufZ, grad(permutations[l4], floatZ, d16, d14), grad(permutations[k5], floatZ - 1.0D, d16, d14));
+                            floatX = lerp(shufZ, grad(permutations[i5], floatZ, d16 - 1.0D, d14), grad(permutations[l5], floatZ - 1.0D, d16 - 1.0D, d14));
+                            d10 = lerp(shufZ, grad(permutations[l4 + 1], floatZ, d16, d14 - 1.0D), grad(permutations[k5 + 1], floatZ - 1.0D, d16, d14 - 1.0D));
+                            shufFX = lerp(shufZ, grad(permutations[i5 + 1], floatZ, d16 - 1.0D, d14 - 1.0D), grad(permutations[l5 + 1], floatZ - 1.0D, d16 - 1.0D, d14 - 1.0D));
                         }
 
-                        double d18 = lerp(d17, d8, d9);
-                        double d19 = lerp(d17, d10, d11);
+                        double d18 = lerp(d17, d8, floatX);
+                        double d19 = lerp(d17, d10, shufFX);
                         double d20 = lerp(d15, d18, d19);
-                        j6 = l++;
+                        j6 = permBIX++;
                         noiseArray[j6] += d20 * d7;
                     }
                 }

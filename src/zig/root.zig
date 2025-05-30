@@ -40,9 +40,10 @@ pub export fn populateNoiseArray(
     xOffset: f64, yOffset: f64, zOffset: f64,
     xSize: i32, ySize: i32, zSize: i32,
     xScale: f64, yScale: f64, zScale: f64,
-    noiseScale: f64, seed: i64) void {
+    noiseScale: f64, seed: i64, noiseOffset: f64) void {
     @setFloatMode(.optimized);
-    var buffer = noiseArray[0..@as(usize, @intCast(xSize * ySize * zSize))];
+    const bLen = @as(usize, @intCast(xSize * ySize * zSize));
+    var buffer = noiseArray[0..bLen];
 
     const xMax = @as(usize, @intCast(xSize));
     const yMax = @as(usize, @intCast(ySize));
@@ -61,5 +62,9 @@ pub export fn populateNoiseArray(
                 buffer[bidx] = opensimplex.noise3_ImproveXZ(seed, fx, fy, fz) * noiseScale;
             }
         }
+    }
+
+    for (0..bLen) |i| {
+        buffer[i] += noiseOffset;
     }
 }
