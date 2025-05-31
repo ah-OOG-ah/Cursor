@@ -10,6 +10,7 @@ repositories {
 
 dependencies {
     implementation("org.openjdk.jol:jol-core:0.10")
+    implementation(rootProject.sourceSets["patchedMc"].output)
 }
 
 java {

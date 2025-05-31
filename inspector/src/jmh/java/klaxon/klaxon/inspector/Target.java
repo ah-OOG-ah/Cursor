@@ -19,7 +19,6 @@
 package klaxon.klaxon.inspector;
 
 import static java.lang.Math.max;
-import static java.lang.Math.min;
 import static java.lang.Math.round;
 import static java.lang.Math.sqrt;
 import static java.lang.foreign.FunctionDescriptor.ofVoid;
@@ -36,7 +35,9 @@ import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+import java.util.Random;
 import javax.imageio.ImageIO;
+import net.minecraft.world.gen.NoiseGeneratorImproved;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Setup;
@@ -48,14 +49,17 @@ import org.openjdk.jmh.infra.Blackhole;
 public class Target {
 
     private static MethodHandle zmh_populateNoiseArray;
+    private static NoiseGeneratorImproved noiseGen = null;
 
     public static void main(String[] args) {
         final int SIZE = 512;
         final boolean THIN = true;
         final int thith = 1;
         final var noise = new double[THIN ? SIZE * thith * SIZE : SIZE * SIZE * SIZE];
-        final var SCALE = 0.01;
-        NoiseGeneratorImproved.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0);
+        final var SCALE = 0.1;
+
+        noiseGen = new NoiseGeneratorImproved(new Random(1337));
+        noiseGen.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0);
         final int RL = noise.length / SIZE;
         printNoiseResults(noise, RL, false);
         writeNoiseAsPNG(noise, new File("mc.png"), SIZE, THIN ? thith : SIZE, SIZE);
@@ -100,16 +104,18 @@ public class Target {
 
     private static void writeNoiseAsPNG(double[] noise, File output, int x, int y, int z) {
         if (!output.getName().endsWith(".png")) throw new RuntimeException();
-        final var noiseRange = 1.0;
+
         final var img = new BufferedImage(x, y * z, BufferedImage.TYPE_BYTE_GRAY);
-        for (int px = 0; px < x; px++) {
-            for (int py = 0; py < z * y; ++py) {
-                final var clamp = (max(min(noise[px * z * y + py], noiseRange), -noiseRange) + noiseRange) / (2 * noiseRange);
-                // clamp is now 0 - 1
-                final byte i = (byte) Math.toIntExact(round(clamp * 255));
-                final int color = 0xFF_00_00_00 | i << 16 | i << 8 | i;
-                img.setRGB(px, py, color);
-            }
+        for (int i = 0; i < x * y * z; ++i) {
+            // clamp is now 0 - 1
+            final int val = (int) round((noise[i] * 0.5 + 0.5) * 256);
+            final int color = 0xFF_00_00_00 | val << 16 | val << 8 | val;
+
+            final int ny = i % y;
+            final int xz = i / y;
+            final int nx = xz % x;
+            final int nz = xz / x;
+            img.setRGB(nx, nz + ny * z, color);
         }
 
         try {
@@ -126,6 +132,8 @@ public class Target {
 
     @Setup
     public static void setup() {
+        noiseGen = new NoiseGeneratorImproved(new Random(1337));
+
         final var linker = Linker.nativeLinker();
         final var globalArena = Arena.global();
         final var zig = SymbolLookup.libraryLookup("inspector/build/libCursor.so", globalArena);
@@ -167,7 +175,7 @@ public class Target {
     public static void noise(Blackhole bh) {
         //
         final var noise = new double[8 * 8 * 8];
-        NoiseGeneratorImproved.populateNoiseArray(noise, 0, 0, 0, 8, 8, 8, 0.1, 0.1, 0.1, 1.1);
+        noiseGen.populateNoiseArray(noise, 0, 0, 0, 8, 8, 8, 0.1, 0.1, 0.1, 1.1);
         bh.consume(noise);
     }
 }
