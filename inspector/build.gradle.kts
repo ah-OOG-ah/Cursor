@@ -61,14 +61,18 @@ tasks.register<JavaExec>("runInspector") {
 }
 
 jmh {
-    jvmArgs = listOf(
+    // These arguments cause the JVM to print assembly output for compiled functions
+    /*jvmArgs = listOf(
         "-XX:+UnlockDiagnosticVMOptions",
         "-XX:+UnlockExperimentalVMOptions",
         "-XX:+PrintAssembly",
         "-XX:PrintAssemblyOptions=intel"
-        //"-XX:CompileCommand=print,*NoiseGeneratorImproved.populateNoiseArray" //,PrintNativeNMethods,PrintSignatureHandlers,PrintAdapterHandlers"
-    )
+    )*/
+
+    jvmArgs = listOf("--enable-native-access=ALL-UNNAMED", "-Dcursor.libLoc=build/libCursor.so")
 }
+
+tasks["compileJmhJava"].dependsOn(copyZigNatives)
 
 tasks.jmh {
     dependsOn += copyZigNatives
