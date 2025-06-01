@@ -64,6 +64,7 @@ public class Target {
     private static final int YS = 5;
     private static final double[] NOISE = new double[XZS * YS * XZS];
 
+    @SuppressWarnings("ConstantValue")
     public static void main(String[] args) {
         final int SIZE = 512;
         final boolean THIN = true;
@@ -83,6 +84,7 @@ public class Target {
         writeNoiseAsPNG(noise, new File("mine.png"), SIZE, THIN ? thith : SIZE, SIZE);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static void printNoiseResults(double[] noise, int runLength, boolean printDetails) {
         double max = Double.MIN_VALUE;
         double min = Double.MAX_VALUE;
