@@ -156,7 +156,7 @@ public class Target {
         double noiseScale, long seed) {
 
         final MemorySegment wrappedNoise = MemorySegment.ofArray(noiseArray);
-        // Required to make range match MC's. It's not *that* close, but it's close enough... probably
+        // Required to make output characteristics match MC's. It's not *that* close, but it's close enough... probably
         noiseScale = 1.0 / noiseScale;
         xScale *= 0.7;
         yScale *= 0.7;
