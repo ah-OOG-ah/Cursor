@@ -23,7 +23,7 @@ import static java.lang.Math.round;
 import static java.lang.Math.sqrt;
 import static java.lang.foreign.FunctionDescriptor.ofVoid;
 import static java.lang.foreign.ValueLayout.ADDRESS;
-import static java.lang.foreign.ValueLayout.JAVA_DOUBLE;
+import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
@@ -50,6 +50,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
+@SuppressWarnings("ForLoopReplaceableByForEach")
 @State(Scope.Thread)
 @BenchmarkMode(Mode.AverageTime)
 @Measurement(time = 2, timeUnit = TimeUnit.SECONDS)
@@ -70,7 +71,7 @@ public class Target {
         final boolean THIN = true;
         final int thith = 24;
         final var noise = new double[THIN ? SIZE * thith * SIZE : SIZE * SIZE * SIZE];
-        final var SCALE = 0.02;
+        final var SCALE = 0.02f;
 
         noiseGen = new NoiseGeneratorImproved(new Random(1337));
         noiseGen.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0);
@@ -79,7 +80,7 @@ public class Target {
         writeNoiseAsPNG(noise, new File("mc.png"), SIZE, THIN ? thith : SIZE, SIZE);
 
         setup();
-        populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0, 1337);
+        populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0f, 1337);
         printNoiseResults(noise, RL, false);
         writeNoiseAsPNG(noise, new File("mine.png"), SIZE, THIN ? thith : SIZE, SIZE);
     }
@@ -117,6 +118,7 @@ public class Target {
         System.out.printf("Standard deviation: %f\n", sStdev);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static void writeNoiseAsPNG(double[] noise, File output, int x, int y, int z) {
         if (!output.getName().endsWith(".png")) throw new RuntimeException();
 
@@ -157,37 +159,37 @@ public class Target {
         zmh_populateNoiseArray = linker.downcallHandle(
             zig.findOrThrow("populateNoiseArray"),
             ofVoid(ADDRESS,
-                JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
+                JAVA_FLOAT, JAVA_FLOAT, JAVA_FLOAT,
                 JAVA_INT, JAVA_INT, JAVA_INT,
-                JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
-                JAVA_DOUBLE, JAVA_LONG),
+                JAVA_FLOAT, JAVA_FLOAT, JAVA_FLOAT,
+                JAVA_FLOAT, JAVA_LONG),
             Linker.Option.critical(true)
         );
 
         zmh_FNL_populateNoiseArray = linker.downcallHandle(
             zig.findOrThrow("FNL_populateNoiseArray"),
             ofVoid(ADDRESS,
-                JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
+                JAVA_FLOAT, JAVA_FLOAT, JAVA_FLOAT,
                 JAVA_INT, JAVA_INT, JAVA_INT,
-                JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
-                JAVA_DOUBLE, JAVA_LONG),
+                JAVA_FLOAT, JAVA_FLOAT, JAVA_FLOAT,
+                JAVA_FLOAT, JAVA_LONG),
             Linker.Option.critical(true)
         );
     }
 
     public static void populateNoiseArray(
         double[] noiseArray,
-        double xOffset, double yOffset, double zOffset,
+        float xOffset, float yOffset, float zOffset,
         int xSize, int ySize, int zSize,
-        double xScale, double yScale, double zScale,
-        double noiseScale, long seed) {
+        float xScale, float yScale, float zScale,
+        float noiseScale, long seed) {
 
         final MemorySegment wrappedNoise = MemorySegment.ofArray(noiseArray);
         // Required to make output characteristics match MC's. It's not *that* close, but it's close enough... probably
-        noiseScale = 1.0 / noiseScale;
-        xScale *= 0.7;
-        yScale *= 0.7;
-        zScale *= 0.7;
+        noiseScale = 1.0f / noiseScale;
+        xScale *= 0.7f;
+        yScale *= 0.7f;
+        zScale *= 0.7f;
 
         try {
             zmh_populateNoiseArray.invokeExact(wrappedNoise,
@@ -202,17 +204,17 @@ public class Target {
 
     public static void FNL_populateNoiseArray(
         double[] noiseArray,
-        double xOffset, double yOffset, double zOffset,
+        float xOffset, float yOffset, float zOffset,
         int xSize, int ySize, int zSize,
-        double xScale, double yScale, double zScale,
-        double noiseScale, long seed) {
+        float xScale, float yScale, float zScale,
+        float noiseScale, long seed) {
 
         final MemorySegment wrappedNoise = MemorySegment.ofArray(noiseArray);
         // Required to make output characteristics match MC's. It's not *that* close, but it's close enough... probably
-        noiseScale = 1.0 / noiseScale;
-        xScale *= 0.7;
-        yScale *= 0.7;
-        zScale *= 0.7;
+        noiseScale = 1.0f / noiseScale;
+        xScale *= 0.7f;
+        yScale *= 0.7f;
+        zScale *= 0.7f;
 
         try {
             zmh_FNL_populateNoiseArray.invokeExact(wrappedNoise,
@@ -233,13 +235,13 @@ public class Target {
 
     @Benchmark
     public static void openSimplex2F(Blackhole bh) {
-        populateNoiseArray(NOISE, 0, 0, 0, XZS, YS, XZS, 0.1, 0.1, 0.1, 1.1, 1337);
+        populateNoiseArray(NOISE, 0, 0, 0, XZS, YS, XZS, 0.1f, 0.1f, 0.1f, 1.1f, 1337);
         bh.consume(NOISE);
     }
 
     @Benchmark
     public static void fnlSimplex(Blackhole bh) {
-        FNL_populateNoiseArray(NOISE, 0, 0, 0, XZS, YS, XZS, 0.1, 0.1, 0.1, 1.1, 1337);
+        FNL_populateNoiseArray(NOISE, 0, 0, 0, XZS, YS, XZS, 0.1f, 0.1f, 0.1f, 1.1f, 1337);
         bh.consume(NOISE);
     }
 }

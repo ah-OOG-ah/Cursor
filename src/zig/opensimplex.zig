@@ -26,11 +26,11 @@ const SEED_OFFSET_4D: i64 = 0xE83DC3E0DA7164D;
 
 const ROOT2OVER2: f64 = 0.7071067811865476;
 const SKEW_2D: f64 = 0.366025403784439;
-const UNSKEW_2D: f64 = -0.21132486540518713;
+const UNSKEW_2D: f32 = -0.21132486540518713;
 
-const ROOT3OVER3: f64 = 0.577350269189626;
+const ROOT3OVER3: f32 = @sqrt(3.0) / 3.0;
 const FALLBACK_ROTATE_3D: f64 = 2.0 / 3.0;
-const ROTATE_3D_ORTHOGONALIZER: f64 = UNSKEW_2D;
+const ROTATE_3D_ORTHOGONALIZER: f32 = UNSKEW_2D;
 
 const SKEW_4D: f32 = -0.138196601125011;
 const UNSKEW_4D: f32 = 0.309016994374947;
@@ -170,16 +170,16 @@ fn noise3_ImproveXY(seed: i64, x: f64, y: f64, z: f64) f32 {
 // For a time varied animation, call noise3_ImproveXZ(x, T, y) or use noise3_ImproveXY.
 //
 
-pub fn noise3_ImproveXZ(seed: i64, x: f64, y: f64, z: f64) f32 {
+pub fn noise3_ImproveXZ(seed: i64, x: f32, y: f32, z: f32) f32 {
     // Re-orient the cubic lattices without skewing, so Y points up the main lattice diagonal,
     // and the planes formed by XZ are moved far out of alignment with the cube faces.
     // Orthonormal rotation. Not a skew transform.
-    const xz: f64 = x + z;
-    const s2: f64 = xz * ROTATE_3D_ORTHOGONALIZER;
-    const yy: f64 = y * ROOT3OVER3;
-    const xr: f64 = x + s2 + yy;
-    const zr: f64 = z + s2 + yy;
-    const yr: f64 = xz * -ROOT3OVER3 + yy;
+    const xz: f32 = x + z;
+    const s2: f32 = xz * ROTATE_3D_ORTHOGONALIZER;
+    const yy: f32 = y * ROOT3OVER3;
+    const xr: f32 = x + s2 + yy;
+    const zr: f32 = z + s2 + yy;
+    const yr: f32 = xz * -ROOT3OVER3 + yy;
 
     // Evaluate both lattices to form a BCC lattice.
     return noise3_UnrotatedBase(seed, xr, yr, zr);
@@ -205,16 +205,16 @@ fn noise3_Fallback(seed: i64, x: f64, y: f64, z: f64) f32 {
 //
 // Generate overlapping cubic lattices for 3D OpenSimplex2 noise.
 //
-fn noise3_UnrotatedBase(seed: i64, xr: f64, yr: f64, zr: f64) f32 {
+fn noise3_UnrotatedBase(seed: i64, xr: f32, yr: f32, zr: f32) f32 {
     var seedMut = seed;
 
     // Get base points and offsets.
     const xrb = fastRound(xr);
     const yrb = fastRound(yr);
     const zrb = fastRound(zr);
-    var xri = @as(f32, @floatCast(xr - @as(f64, @floatFromInt(xrb))));
-    var yri = @as(f32, @floatCast(yr - @as(f64, @floatFromInt(yrb))));
-    var zri = @as(f32, @floatCast(zr - @as(f64, @floatFromInt(zrb))));
+    var xri: f32 = xr - @as(f32, @floatFromInt(xrb));
+    var yri: f32 = yr - @as(f32, @floatFromInt(yrb));
+    var zri: f32 = zr - @as(f32, @floatFromInt(zrb));
 
     // -1 if positive, 1 if negative.
     var xNSign: i32 = @as(i32, @intFromFloat(-1.0 - xri)) | 1;
@@ -222,9 +222,9 @@ fn noise3_UnrotatedBase(seed: i64, xr: f64, yr: f64, zr: f64) f32 {
     var zNSign: i32 = @as(i32, @intFromFloat(-1.0 - zri)) | 1;
 
     // Compute absolute values, using the above as a shortcut. This was faster in my tests for some reason.
-    var ax0 = @as(f32, @floatFromInt(xNSign)) * -xri;
-    var ay0 = @as(f32, @floatFromInt(yNSign)) * -yri;
-    var az0 = @as(f32, @floatFromInt(zNSign)) * -zri;
+    var ax0: f32 = @as(f32, @floatFromInt(xNSign)) * -xri;
+    var ay0: f32 = @as(f32, @floatFromInt(yNSign)) * -yri;
+    var az0: f32 = @as(f32, @floatFromInt(zNSign)) * -zri;
 
     // Prime pre-multiplication for hash.
     var xrbp: i64 = @as(i64, xrb) *% PRIME_X;
@@ -353,7 +353,7 @@ fn fastFloor(x: f64) i32 {
     }
 }
 
-fn fastRound(x: f64) i32 {
+fn fastRound(x: f32) i32 {
     if (x < 0.0) {
         return @intFromFloat(x - 0.5);
     } else {
