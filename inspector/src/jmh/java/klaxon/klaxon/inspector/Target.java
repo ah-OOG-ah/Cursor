@@ -36,20 +36,33 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import net.minecraft.world.gen.NoiseGeneratorImproved;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-@Warmup(iterations = 0, batchSize = 0)
-@Measurement(iterations = 1, batchSize = 1)
+@State(Scope.Thread)
+@BenchmarkMode(Mode.AverageTime)
+@Measurement(time = 2, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 3, time = 2, timeUnit = TimeUnit.SECONDS)
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class Target {
 
     private static MethodHandle zmh_populateNoiseArray;
+    private static MethodHandle zmh_FNL_populateNoiseArray;
     private static NoiseGeneratorImproved noiseGen = null;
+    private static final int XZS = 33;
+    private static final int YS = 5;
+    private static final double[] NOISE = new double[XZS * YS * XZS];
 
     public static void main(String[] args) {
         final int SIZE = 512;
@@ -65,7 +78,7 @@ public class Target {
         writeNoiseAsPNG(noise, new File("mc.png"), SIZE, THIN ? thith : SIZE, SIZE);
 
         setup();
-        populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0, 1337);
+        FNL_populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0, 1337);
         printNoiseResults(noise, RL, false);
         writeNoiseAsPNG(noise, new File("mine.png"), SIZE, THIN ? thith : SIZE, SIZE);
     }
@@ -136,9 +149,21 @@ public class Target {
 
         final var linker = Linker.nativeLinker();
         final var globalArena = Arena.global();
-        final var zig = SymbolLookup.libraryLookup("inspector/build/libCursor.so", globalArena);
+        final var libLoc = System.getProperty("cursor.libLoc", "inspector/build/libCursor.so");
+        final var zig = SymbolLookup.libraryLookup(libLoc, globalArena);
+
         zmh_populateNoiseArray = linker.downcallHandle(
             zig.findOrThrow("populateNoiseArray"),
+            ofVoid(ADDRESS,
+                JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
+                JAVA_INT, JAVA_INT, JAVA_INT,
+                JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
+                JAVA_DOUBLE, JAVA_LONG),
+            Linker.Option.critical(true)
+        );
+
+        zmh_FNL_populateNoiseArray = linker.downcallHandle(
+            zig.findOrThrow("FNL_populateNoiseArray"),
             ofVoid(ADDRESS,
                 JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
                 JAVA_INT, JAVA_INT, JAVA_INT,
@@ -173,12 +198,47 @@ public class Target {
         }
     }
 
+    public static void FNL_populateNoiseArray(
+        double[] noiseArray,
+        double xOffset, double yOffset, double zOffset,
+        int xSize, int ySize, int zSize,
+        double xScale, double yScale, double zScale,
+        double noiseScale, long seed) {
+
+        final MemorySegment wrappedNoise = MemorySegment.ofArray(noiseArray);
+        // Required to make output characteristics match MC's. It's not *that* close, but it's close enough... probably
+        noiseScale = 1.0 / noiseScale;
+        xScale *= 0.7;
+        yScale *= 0.7;
+        zScale *= 0.7;
+
+        try {
+            zmh_FNL_populateNoiseArray.invokeExact(wrappedNoise,
+                xOffset, yOffset, zOffset,
+                xSize, ySize, zSize,
+                xScale, yScale, zScale,
+                noiseScale, seed);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Benchmark
-    public static void noise(Blackhole bh) {
-        //
-        final var noise = new double[8 * 8 * 8];
-        noiseGen.populateNoiseArray(noise, 0, 0, 0, 8, 8, 8, 0.1, 0.1, 0.1, 1.1);
-        bh.consume(noise);
+    public static void noiseGenImproved(Blackhole bh) {
+        noiseGen.populateNoiseArray(NOISE, 0, 0, 0, XZS, YS, XZS, 0.1, 0.1, 0.1, 1.1);
+        bh.consume(NOISE);
+    }
+
+    @Benchmark
+    public static void openSimplex2F(Blackhole bh) {
+        populateNoiseArray(NOISE, 0, 0, 0, XZS, YS, XZS, 0.1, 0.1, 0.1, 1.1, 1337);
+        bh.consume(NOISE);
+    }
+
+    @Benchmark
+    public static void fnlSimplex(Blackhole bh) {
+        FNL_populateNoiseArray(NOISE, 0, 0, 0, XZS, YS, XZS, 0.1, 0.1, 0.1, 1.1, 1337);
+        bh.consume(NOISE);
     }
 }
 
