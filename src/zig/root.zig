@@ -17,7 +17,7 @@
 const std = @import("std");
 const testing = std.testing;
 const opensimplex = @import("opensimplex.zig");
-const zbench = @import("zbench");
+const fastnoiselite = @import("fastnoiselite.zig");
 
 fn Result(comptime T: type) type {
     return struct {
@@ -76,6 +76,44 @@ pub export fn populateNoiseArray(
                 const bidx = py + px * yMax + pz * xMax * yMax;
 
                 buffer[bidx] = opensimplex.noise3_ImproveXZ(seed, fx, fy, fz) * noiseScale;
+            }
+        }
+    }
+}
+
+pub export fn FNL_populateNoiseArray(
+    noiseArray: [*]f64,
+    xOffset: f64, yOffset: f64, zOffset: f64,
+    xSize: i32, ySize: i32, zSize: i32,
+    xScale: f64, yScale: f64, zScale: f64,
+    noiseScale: f64, seed: i64) void {
+    @setFloatMode(.optimized);
+    const bLen = @as(usize, @intCast(xSize * ySize * zSize));
+    var buffer = noiseArray[0..bLen];
+
+    const xMax = @as(usize, @intCast(xSize));
+    const yMax = @as(usize, @intCast(ySize));
+    const zMax = @as(usize, @intCast(zSize));
+
+    const NoiseGen = fastnoiselite.Noise(f64);
+    const generator: NoiseGen = .{
+        .seed = @truncate(seed),
+        .frequency = 1,
+        .noise_type = .simplex,
+        .octaves = 1,
+    };
+
+    for (0..xMax) |px| {
+        const fx = @as(f64, @floatFromInt(px)) * xScale + xOffset;
+
+        for (0..yMax) |py| {
+            const fy = @as(f64, @floatFromInt(py)) * yScale + yOffset;
+
+            for (0..zMax) |pz| {
+                const fz = @as(f64, @floatFromInt(pz)) * zScale + zOffset;
+                const bidx = py + px * yMax + pz * xMax * yMax;
+
+                buffer[bidx] = generator.genNoise3D(fx, fy, fz) * noiseScale;
             }
         }
     }
