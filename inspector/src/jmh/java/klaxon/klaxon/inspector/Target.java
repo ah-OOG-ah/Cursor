@@ -54,9 +54,9 @@ public class Target {
     public static void main(String[] args) {
         final int SIZE = 512;
         final boolean THIN = true;
-        final int thith = 1;
+        final int thith = 24;
         final var noise = new double[THIN ? SIZE * thith * SIZE : SIZE * SIZE * SIZE];
-        final var SCALE = 0.1;
+        final var SCALE = 0.02;
 
         noiseGen = new NoiseGeneratorImproved(new Random(1337));
         noiseGen.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0);
@@ -108,7 +108,7 @@ public class Target {
         final var img = new BufferedImage(x, y * z, BufferedImage.TYPE_BYTE_GRAY);
         for (int i = 0; i < x * y * z; ++i) {
             // clamp is now 0 - 1
-            final int val = (int) round((noise[i] * 0.5 + 0.5) * 256);
+            final int val = (int) round((noise[i] / 3 + 0.5) * 256);
             final int color = 0xFF_00_00_00 | val << 16 | val << 8 | val;
 
             final int ny = i % y;
@@ -143,7 +143,7 @@ public class Target {
                 JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
                 JAVA_INT, JAVA_INT, JAVA_INT,
                 JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
-                JAVA_DOUBLE, JAVA_LONG, JAVA_DOUBLE),
+                JAVA_DOUBLE, JAVA_LONG),
             Linker.Option.critical(true)
         );
     }
@@ -157,15 +157,17 @@ public class Target {
 
         final MemorySegment wrappedNoise = MemorySegment.ofArray(noiseArray);
         // Required to make range match MC's. It's not *that* close, but it's close enough... probably
-        noiseScale *= 1.291408 / 2.0;
-        double offset = -0.445328;
+        noiseScale = 1.0 / noiseScale;
+        xScale *= 0.7;
+        yScale *= 0.7;
+        zScale *= 0.7;
 
         try {
             zmh_populateNoiseArray.invokeExact(wrappedNoise,
                 xOffset, yOffset, zOffset,
                 xSize, ySize, zSize,
                 xScale, yScale, zScale,
-                noiseScale, seed, offset);
+                noiseScale, seed);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

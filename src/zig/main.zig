@@ -35,7 +35,7 @@ pub fn main() !void {
         0.2, 0.1, 0.0,
         SIZE, 1, SIZE,
         0.1, 0.1, 0.1,
-        1.0, 1337, 0.0);
+        1.0, 1337);
 
     for (0..(noise.len/8)) |i| {
         try stdout.print("0x{x:0>2} ", .{i});
