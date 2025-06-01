@@ -174,12 +174,12 @@ pub fn noise3_ImproveXZ(seed: i64, x: f64, y: f64, z: f64) f32 {
     // Re-orient the cubic lattices without skewing, so Y points up the main lattice diagonal,
     // and the planes formed by XZ are moved far out of alignment with the cube faces.
     // Orthonormal rotation. Not a skew transform.
-    const xz = x + z;
-    const s2 = xz * ROTATE_3D_ORTHOGONALIZER;
-    const yy = y * ROOT3OVER3;
-    const xr = x + s2 + yy;
-    const zr = z + s2 + yy;
-    const yr = xz * -ROOT3OVER3 + yy;
+    const xz: f64 = x + z;
+    const s2: f64 = xz * ROTATE_3D_ORTHOGONALIZER;
+    const yy: f64 = y * ROOT3OVER3;
+    const xr: f64 = x + s2 + yy;
+    const zr: f64 = z + s2 + yy;
+    const yr: f64 = xz * -ROOT3OVER3 + yy;
 
     // Evaluate both lattices to form a BCC lattice.
     return noise3_UnrotatedBase(seed, xr, yr, zr);
