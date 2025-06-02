@@ -66,53 +66,43 @@ public class Target {
     private static final int YS = 5;
     private static final double[] NOISE = new double[XZS * YS * XZS];
 
-    private static final boolean[][] NUMBERS = {
-        {
+    private static final boolean[][] NUMBERS = {{
             true, true, true,
             true, false,true,
             true, true, true,
-        },
-        {
+        }, {
             true, true, false,
             false,true, false,
             false,true, false,
-        },
-        {
+        }, {
             true, true, false,
             false,true, false,
             false,true, true,
-        },
-        {
+        }, {
             true, true, true,
             false,true, true,
             true, true, true,
-        },
-        {
+        }, {
             true, false,true,
             true, true, true,
             false,false,true,
-        },
-        {
+        }, {
             false,true, true,
             false,true, false,
             true, true, false,
-        },
-        {
+        }, {
             true, false,false,
             true, true, true,
             true, true, true,
-        },
-        {
+        }, {
             true, true, true,
             false,true, true,
             false,false,true,
-        },
-        {
+        }, {
             true, true, true,
             true, true, true,
             true, true, true,
-        },
-        {
+        }, {
             true, true, true,
             true, true, true,
             false,false,true,
