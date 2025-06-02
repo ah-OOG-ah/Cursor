@@ -70,7 +70,7 @@ public class Target {
         final boolean THIN = true;
         final int thith = 24;
         final var noise = new double[THIN ? SIZE * thith * SIZE : SIZE * SIZE * SIZE];
-        final var SCALE = 0.02;
+        final var SCALE = 0.05;
 
         noiseGen = new NoiseGeneratorImproved(new Random(1337));
         noiseGen.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0);
@@ -82,6 +82,12 @@ public class Target {
         populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0, 1337);
         printNoiseResults(noise, RL, false);
         writeNoiseAsPNG(noise, new File("mine.png"), SIZE, THIN ? thith : SIZE, SIZE);
+
+        final var Noise = new double[SIZE * 1 * SIZE];
+        noiseGen.populateNoiseArray(Noise, 0, 0, 0, SIZE, 1, SIZE, SCALE, SCALE, SCALE, 1.0);
+        writeNoiseAsPNG(noise, new File("mc_y0.png"), SIZE, 1, SIZE);
+        noiseGen.populateNoiseArray(Noise, 0.0, 12.0 * SCALE, 0.0, SIZE, 1, SIZE, SCALE, SCALE, SCALE, 1.0);
+        writeNoiseAsPNG(noise, new File("mc_y12.png"), SIZE, 1, SIZE);
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -121,16 +127,28 @@ public class Target {
         if (!output.getName().endsWith(".png")) throw new RuntimeException();
 
         final var img = new BufferedImage(x, y * z, BufferedImage.TYPE_BYTE_GRAY);
-        for (int i = 0; i < x * y * z; ++i) {
-            // clamp is now 0 - 1
-            final int val = (int) round((noise[i] / 3 + 0.5) * 256);
-            final int color = 0xFF_00_00_00 | val << 16 | val << 8 | val;
+        if (y != 1) {
+            for (int i = 0; i < x * y * z; ++i) {
+                // clamp is now 0 - 1
+                final int val = (int) round((noise[i] / 3 + 0.5) * 256);
+                final int color = 0xFF_00_00_00 | val << 16 | val << 8 | val;
 
-            final int ny = i % y;
-            final int xz = i / y;
-            final int nx = xz % x;
-            final int nz = xz / x;
-            img.setRGB(nx, nz + ny * z, color);
+                final int ny = i % y;
+                final int xz = i / y;
+                final int nx = xz % x;
+                final int nz = xz / x;
+                img.setRGB(nx, nz + ny * z, color);
+            }
+        } else {
+            int i = 0;
+            for (int px = 0; px < x; ++px) {
+                for (int py = 0; py < z; ++py) {
+                    final int val = (int) round((noise[i] / 3 + 0.5) * 256);
+                    final int color = 0xFF_00_00_00 | val << 16 | val << 8 | val;
+                    img.setRGB(px, py, color);
+                    ++i;
+                }
+            }
         }
 
         try {
