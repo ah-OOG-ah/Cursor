@@ -82,8 +82,12 @@ pub export fn populateNoiseArray(
 }
 
 // Theoretically caps out for f64/i64 on AVX-512
-const VLEN = 2;
+const VLEN = 8;
 const VF64: type = @Vector(VLEN, f64);
+
+fn splat(val: f64) VF64 {
+    return @splat(val);
+}
 
 pub export fn lazy_populateNoiseArray(
     noiseArray: [*]f64,
@@ -95,13 +99,47 @@ pub export fn lazy_populateNoiseArray(
     const bLen = @as(usize, @intCast(xSize * ySize * zSize));
     var buffer = noiseArray[0..bLen];
 
-    var px: usize = 0;
-    var py: usize = 0;
-    var pz: usize = 0;
     const xMax = @as(usize, @intCast(xSize));
     const yMax = @as(usize, @intCast(ySize));
 
-    for (0..buffer.len) |i| {
+    const vbLen = buffer.len / VLEN;
+
+    for (0..vbLen) |i| {
+        var fxs: VF64 = undefined;
+        var fys: VF64 = undefined;
+        var fzs: VF64 = undefined;
+        for (0..VLEN) |ii| {
+            // Assign indices
+            const py = @as(f64, @floatFromInt( (i * VLEN + ii) % yMax        )); // goes up by one each iteration
+            const px = @as(f64, @floatFromInt(((i * VLEN + ii) / yMax) % xMax)); // up by one each ySize iterations
+            const pz = @as(f64, @floatFromInt( (i * VLEN + ii) / yMax  / xMax)); // up by one each ySize * xSize iterations
+
+            fxs[ii] = px * xScale + xOffset;
+            fys[ii] = py * yScale + yOffset;
+            fzs[ii] = pz * zScale + zOffset;
+        }
+
+        // Imitate Minecraft's lazy noise, and just scale up the old one
+        // Mix up the seed every 0.5 in the y, roughly, again to imitate MC
+        const tys = fys * splat(2);
+        var extraScales = tys - @floor(tys); // map y value to -1, 1, doubling so that -0.49 maps to -.98
+        // invert if negative, now it's 0, 1
+        extraScales = @select(f64, extraScales < splat(0), extraScales + splat(1), extraScales);
+        extraScales = splat(1) + extraScales * splat(0.5); // lerp the extra scale from 1 to 1.5 based on this
+
+        // Add 1 to the seed for every .5 bump in the y
+        for (0..VLEN) |ii| {
+            const idx = i * VLEN + ii; if (idx >= buffer.len) unreachable;
+            buffer[idx] = opensimplex.noise2(seed +% @as(i64, @intFromFloat(@floor(tys[ii]))) *% 87178291199, fxs[ii], fzs[ii]) * noiseScale * extraScales[ii];
+        }
+    }
+
+    var px: usize = 0;
+    var py: usize = 0;
+    var pz: usize = 0;
+
+    const remaining = buffer.len % 8;
+    for ((buffer.len - remaining)..buffer.len) |i| {
         // Assign indices
         py = i % yMax; // goes up by one each iteration
         px = (i / yMax) % xMax; // up by one each ySize iterations
