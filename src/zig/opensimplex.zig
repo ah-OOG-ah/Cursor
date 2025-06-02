@@ -15,6 +15,24 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 const std = @import("std");
+const builtin = @import("builtin");
+
+const types = @import("types.zig");
+
+const VLEN = types.VLEN;
+
+const VI64 = types.VI64_8;
+const VF64 = types.VF64_8;
+const VI32 = types.VI32_8;
+const VF32 = types.VF32_8;
+
+const splati64 = types.splati64;
+const splatf64 = types.splatf64;
+const splatf32 = types.splatf32;
+const castif = types.castif;
+const chopf = types.chopf;
+const castIUP = types.castIUP;
+const fastFloorV = types.fastFloorV;
 
 const PRIME_X: i64 = 0x5205402B9270C86F;
 const PRIME_Y: i64 = 0x598CD327003817B5;
@@ -27,6 +45,7 @@ const SEED_OFFSET_4D: i64 = 0xE83DC3E0DA7164D;
 const ROOT2OVER2: f64 = 0.7071067811865476;
 const SKEW_2D: f64 = 0.366025403784439;
 const UNSKEW_2D: f64 = -0.21132486540518713;
+const UNSKEW_2DS: f32 = @as(f32, @floatCast(UNSKEW_2D));
 
 const ROOT3OVER3: f64 = 0.577350269189626;
 const FALLBACK_ROTATE_3D: f64 = 2.0 / 3.0;
@@ -64,6 +83,15 @@ pub fn noise2(seed: i64, x: f64, y: f64) f32 {
     const ys = y + s;
 
     return noise2_UnskewedBase(seed, xs, ys);
+}
+
+pub fn vnoise2(seed: VI64, x: VF64, y: VF64) VF32 {
+    // Get points for A2* lattice
+    const s = splatf64(SKEW_2D) * (x + y);
+    const xs = x + s;
+    const ys = y + s;
+
+    return vnoise2_UnskewedBase(seed, xs, ys);
 }
 
 //
@@ -131,6 +159,76 @@ fn noise2_UnskewedBase(seed: i64, xs: f64, ys: f64) f32 {
         const a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
         if (a2 > 0.0) {
             value += (a2 * a2) * (a2 * a2) * grad2(seed, xsbp +% PRIME_X, ysbp, dx2, dy2);
+        }
+    }
+
+    return value;
+}
+
+fn vnoise2_UnskewedBase(seed: VI64, xs: VF64, ys: VF64) VF32 {
+
+    // Get base points and offsets.
+    const xsb = fastFloorV(xs);
+    const ysb = fastFloorV(ys);
+    const xi = chopf(xs - castif(xsb));
+    const yi = chopf(ys - castif(ysb));
+
+    // Prime pre-multiplication for hash.
+    const xsbp: VI64 = castIUP(xsb) *% splati64(PRIME_X);
+    const ysbp: VI64 = castIUP(ysb) *% splati64(PRIME_Y);
+
+    // Unskew.
+    const t: VF32 = (xi + yi) * splatf32(UNSKEW_2DS);
+    const dx0: VF32 = xi + t;
+    const dy0: VF32 = yi + t;
+
+    // First vertex.
+    var value = splatf32(0);
+    const a0: VF32 = splatf32(RSQUARED_2D) - dx0 * dx0 - dy0 * dy0;
+
+    for (0..VLEN) |i| {
+        const ax = a0[i];
+        if (ax > 0.0) {
+            value[i] = (ax * ax) * (ax * ax) * grad2(seed[i], xsbp[i], ysbp[i], dx0[i], dy0[i]);
+        }
+    }
+
+    // Second vertex.
+    const tmp = splatf32(@floatCast(-2.0 * (1.0 + 2.0 * UNSKEW_2D) * (1.0 + 2.0 * UNSKEW_2D))) + a0;
+    const a1 = splatf32(@floatCast(2.0 * (1.0 + 2.0 * UNSKEW_2D) * (1.0 / UNSKEW_2D + 2.0))) * t + tmp;
+    for (0..VLEN) |i| {
+        const ax = a1[i];
+        if (ax > 0.0) {
+            const dx1: f32 = dx0[i] - @as(f32, @floatCast(1.0 + 2.0 * UNSKEW_2D));
+            const dy1: f32 = dy0[i] - @as(f32, @floatCast(1.0 + 2.0 * UNSKEW_2D));
+            value[i] += (ax * ax)
+                * (ax * ax)
+                * grad2(
+                    seed[i],
+                    xsbp[i] +% PRIME_X,
+                    ysbp[i] +% PRIME_Y,
+                    dx1,
+                    dy1
+                );
+        }
+    }
+
+    // Third vertex.
+    for (0..VLEN) |i| {
+        if (dy0[i] > dx0[i]) {
+            const dx2 = dx0[i] - @as(f32, @floatCast(UNSKEW_2D));
+            const dy2 = dy0[i] - @as(f32, @floatCast(UNSKEW_2D + 1.0));
+            const a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
+            if (a2 > 0.0) {
+                value[i] += (a2 * a2) * (a2 * a2) * grad2(seed[i], xsbp[i], ysbp[i] +% PRIME_Y, dx2, dy2);
+            }
+        } else {
+            const dx2 = dx0[i] - @as(f32, @floatCast(UNSKEW_2D + 1.0));
+            const dy2 = dy0[i] - @as(f32, @floatCast(UNSKEW_2D));
+            const a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
+            if (a2 > 0.0) {
+                value[i] += (a2 * a2) * (a2 * a2) * grad2(seed[i], xsbp[i] +% PRIME_X, ysbp[i], dx2, dy2);
+            }
         }
     }
 

@@ -19,6 +19,14 @@ const testing = std.testing;
 const opensimplex = @import("opensimplex.zig");
 const fastnoiselite = @import("fastnoiselite.zig");
 
+const types = @import("types.zig");
+const VLEN = types.VLEN;
+const VF64 = types.VF64_8;
+const splati64 = types.splati64;
+const splatf64 = types.splatf64;
+const castIUP = types.castIUP;
+const fastFloorV = types.fastFloorV;
+
 fn Result(comptime T: type) type {
     return struct {
         raw: [] align(@alignOf(T)) u8,
@@ -81,14 +89,6 @@ pub export fn populateNoiseArray(
     }
 }
 
-// Theoretically caps out for f64/i64 on AVX-512
-const VLEN = 8;
-const VF64: type = @Vector(VLEN, f64);
-
-fn splat(val: f64) VF64 {
-    return @splat(val);
-}
-
 pub export fn lazy_populateNoiseArray(
     noiseArray: [*]f64,
     xOffset: f64, yOffset: f64, zOffset: f64,
@@ -121,16 +121,17 @@ pub export fn lazy_populateNoiseArray(
 
         // Imitate Minecraft's lazy noise, and just scale up the old one
         // Mix up the seed every 0.5 in the y, roughly, again to imitate MC
-        const tys = fys * splat(2);
+        const tys = fys * splatf64(2);
         var extraScales = tys - @floor(tys); // map y value to -1, 1, doubling so that -0.49 maps to -.98
         // invert if negative, now it's 0, 1
-        extraScales = @select(f64, extraScales < splat(0), extraScales + splat(1), extraScales);
-        extraScales = splat(1) + extraScales * splat(0.5); // lerp the extra scale from 1 to 1.5 based on this
+        extraScales = @select(f64, extraScales < splatf64(0), extraScales + splatf64(1), extraScales);
+        extraScales = splatf64(1) + extraScales * splatf64(0.5); // lerp the extra scale from 1 to 1.5 based on this
 
         // Add 1 to the seed for every .5 bump in the y
+        const values = opensimplex.vnoise2(splati64(seed) +% castIUP(fastFloorV(tys)) *% splati64(87178291199), fxs, fzs) * splatf64(noiseScale) * extraScales;
         for (0..VLEN) |ii| {
             const idx = i * VLEN + ii; if (idx >= buffer.len) unreachable;
-            buffer[idx] = opensimplex.noise2(seed +% @as(i64, @intFromFloat(@floor(tys[ii]))) *% 87178291199, fxs[ii], fzs[ii]) * noiseScale * extraScales[ii];
+            buffer[idx] = values[ii];
         }
     }
 
