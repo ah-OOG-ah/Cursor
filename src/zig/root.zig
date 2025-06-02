@@ -104,6 +104,7 @@ pub export fn lazy_populateNoiseArray(
             for (0..zMax) |pz| {
                 const fz = @as(f64, @floatFromInt(pz)) * zScale + zOffset;
                 const bidx = py + px * yMax + pz * xMax * yMax;
+                if (bidx >= buffer.len) unreachable;
 
                 // Imitate Minecraft's lazy noise, and just scale up the old one
                 // Mix up the seed every 0.5 in the y, roughly, again to imitate MC

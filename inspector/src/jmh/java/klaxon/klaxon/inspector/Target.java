@@ -42,6 +42,7 @@ import javax.imageio.ImageIO;
 import net.minecraft.world.gen.NoiseGeneratorImproved;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
@@ -56,6 +57,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @Measurement(time = 2, timeUnit = TimeUnit.SECONDS)
 @Warmup(iterations = 3, time = 2, timeUnit = TimeUnit.SECONDS)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
+@Fork(0)
 public class Target {
 
     private static MethodHandle zmh_populateNoiseArray;
