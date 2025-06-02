@@ -65,22 +65,76 @@ public class Target {
     private static final int YS = 5;
     private static final double[] NOISE = new double[XZS * YS * XZS];
 
+    private static final boolean[][] NUMBERS = {
+        {
+            true, true, true,
+            true, false,true,
+            true, true, true,
+        },
+        {
+            true, true, false,
+            false,true, false,
+            false,true, false,
+        },
+        {
+            true, true, false,
+            false,true, false,
+            false,true, true,
+        },
+        {
+            true, true, true,
+            false,true, true,
+            true, true, true,
+        },
+        {
+            true, false,true,
+            true, true, true,
+            false,false,true,
+        },
+        {
+            false,true, true,
+            false,true, false,
+            true, true, false,
+        },
+        {
+            true, false,false,
+            true, true, true,
+            true, true, true,
+        },
+        {
+            true, true, true,
+            false,true, true,
+            false,false,true,
+        },
+        {
+            true, true, true,
+            true, true, true,
+            true, true, true,
+        },
+        {
+            true, true, true,
+            true, true, true,
+            false,false,true,
+        },
+    };
+
     @SuppressWarnings("ConstantValue")
     public static void main(String[] args) {
         final int SIZE = 128;
         final boolean THIN = true;
-        final int thith = 64;
+        final int thith = 512;
         final var noise = new double[THIN ? SIZE * thith * SIZE : SIZE * SIZE * SIZE];
         final var SCALE = 0.05;
+        final var YSCALE = SCALE / 50;
 
         noiseGen = new NoiseGeneratorImproved(new Random(1337));
-        noiseGen.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0);
+        noiseGen.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, YSCALE, SCALE, 1.0);
         final int RL = noise.length / SIZE;
         printNoiseResults(noise, RL, false);
         writeNoiseAsPNG(noise, new File("mc.png"), SIZE, THIN ? thith : SIZE, SIZE);
 
         setup();
-        populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, SCALE, SCALE, 1.0, 1337);
+        populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, YSCALE, SCALE, 1.0, 1337);
         printNoiseResults(noise, RL, false);
         writeNoiseAsPNG(noise, new File("mine.png"), SIZE, THIN ? thith : SIZE, SIZE);
 
@@ -138,6 +192,39 @@ public class Target {
             final int nx = xz % x;
             final int nz = xz / x;
             img.setRGB(nx, nz + ny * z, color);
+        }
+
+        // Stamp y-index on each slice
+        for (int yLevel = 0; yLevel < y; ++yLevel) {
+
+            // Iterate from n (# of digits) to 1
+            var yLeft = yLevel;
+            var ii = 0;
+            for (int i = (int) (Math.log10(y) + 1); i > 0; --i) {
+                final var factor = (int) Math.round(Math.pow(10, i - 1));
+                final var digit = (yLeft / factor);
+                yLeft %= factor;
+                final var digitOffset = ii * 4;
+
+                // blank space
+                if (ii > 0) {
+                    for (int pz = 0; pz < 3; pz++) {
+                        img.setRGB(digitOffset - 1, pz + yLevel * z, 0);
+                    }
+                }
+
+                // Print the ith digit of the number
+                var didx = 0;
+                for (int pz = 0; pz < 3; pz++) {
+                    for (int px = 0; px < 3; px++) {
+                        final var digitArray = NUMBERS[digit];
+
+                        img.setRGB(px + digitOffset, pz + yLevel * z, digitArray[didx++] ? -1 : 0);
+                    }
+                }
+
+                ii++;
+            }
         }
 
         try {
