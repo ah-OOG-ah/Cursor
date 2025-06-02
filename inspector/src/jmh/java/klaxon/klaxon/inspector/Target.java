@@ -60,6 +60,7 @@ public class Target {
 
     private static MethodHandle zmh_populateNoiseArray;
     private static MethodHandle zmh_FNL_populateNoiseArray;
+    private static MethodHandle zmh_lazy_populateNoiseArray;
     private static NoiseGeneratorImproved noiseGen = null;
     private static final int XZS = 33;
     private static final int YS = 5;
@@ -122,10 +123,10 @@ public class Target {
     public static void main(String[] args) {
         final int SIZE = 128;
         final boolean THIN = true;
-        final int thith = 512;
+        final int thith = 64;
         final var noise = new double[THIN ? SIZE * thith * SIZE : SIZE * SIZE * SIZE];
         final var SCALE = 0.05;
-        final var YSCALE = SCALE / 50;
+        final var YSCALE = SCALE;
 
         noiseGen = new NoiseGeneratorImproved(new Random(1337));
         noiseGen.populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, YSCALE, SCALE, 1.0);
@@ -258,6 +259,16 @@ public class Target {
             Linker.Option.critical(true)
         );
 
+        zmh_lazy_populateNoiseArray = linker.downcallHandle(
+            zig.findOrThrow("lazy_populateNoiseArray"),
+            ofVoid(ADDRESS,
+                JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
+                JAVA_INT, JAVA_INT, JAVA_INT,
+                JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
+                JAVA_DOUBLE, JAVA_LONG),
+            Linker.Option.critical(true)
+        );
+
         zmh_FNL_populateNoiseArray = linker.downcallHandle(
             zig.findOrThrow("FNL_populateNoiseArray"),
             ofVoid(ADDRESS,
@@ -319,6 +330,31 @@ public class Target {
         }
     }
 
+    public static void lazy_populateNoiseArray(
+        double[] noiseArray,
+        double xOffset, double yOffset, double zOffset,
+        int xSize, int ySize, int zSize,
+        double xScale, double yScale, double zScale,
+        double noiseScale, long seed) {
+
+        final MemorySegment wrappedNoise = MemorySegment.ofArray(noiseArray);
+        // Required to make output characteristics match MC's. It's not *that* close, but it's close enough... probably
+        noiseScale = 1.0 / noiseScale;
+        xScale *= 0.7;
+        yScale *= 0.7;
+        zScale *= 0.7;
+
+        try {
+            zmh_lazy_populateNoiseArray.invokeExact(wrappedNoise,
+                xOffset, yOffset, zOffset,
+                xSize, ySize, zSize,
+                xScale, yScale, zScale,
+                noiseScale, seed);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Benchmark
     public static void noiseGenImproved(Blackhole bh) {
         noiseGen.populateNoiseArray(NOISE, 0, 0, 0, XZS, YS, XZS, 0.1, 0.1, 0.1, 1.1);
@@ -332,8 +368,8 @@ public class Target {
     }
 
     @Benchmark
-    public static void fnlSimplex(Blackhole bh) {
-        FNL_populateNoiseArray(NOISE, 0, 0, 0, XZS, YS, XZS, 0.1, 0.1, 0.1, 1.1, 1337);
+    public static void lazySimplex(Blackhole bh) {
+        lazy_populateNoiseArray(NOISE, 0, 0, 0, XZS, YS, XZS, 0.1, 0.1, 0.1, 1.1, 1337);
         bh.consume(NOISE);
     }
 }

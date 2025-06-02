@@ -57,7 +57,7 @@ const RSQUARED_4D: f32 = 0.6;
 //
 // 2D Simplex noise, standard lattice orientation.
 //
-fn noise2(seed: i64, x: f64, y: f64) f32 {
+pub fn noise2(seed: i64, x: f64, y: f64) f32 {
     // Get points for A2* lattice
     const s = SKEW_2D * (x + y);
     const xs = x + s;
@@ -85,13 +85,12 @@ fn noise2_ImproveX(seed: i64, x: f64, y: f64) f32 {
 // 2D Simplex noise base.
 //
 fn noise2_UnskewedBase(seed: i64, xs: f64, ys: f64) f32 {
-    // const seed = Wrapping(seed);
 
     // Get base points and offsets.
     const xsb = fastFloor(xs);
     const ysb = fastFloor(ys);
-    const xi = @as(f32, xs - @as(f64, @floatFromInt(xsb)));
-    const yi = @as(f32, ys - @as(f64, @floatFromInt(ysb)));
+    const xi = @as(f32, @floatCast(xs - @as(f64, @floatFromInt(xsb))));
+    const yi = @as(f32, @floatCast(ys - @as(f64, @floatFromInt(ysb))));
 
     // Prime pre-multiplication for hash.
     const xsbp = @as(i64, xsb) *% PRIME_X;
@@ -103,7 +102,7 @@ fn noise2_UnskewedBase(seed: i64, xs: f64, ys: f64) f32 {
     const dy0: f32 = yi + t;
 
     // First vertex.
-    var value = 0.0;
+    var value: f32 = 0.0;
     const a0: f32 = RSQUARED_2D - dx0 * dx0 - dy0 * dy0;
     if (a0 > 0.0) {
         value = (a0 * a0) * (a0 * a0) * grad2(seed, xsbp, ysbp, dx0, dy0);
@@ -346,7 +345,7 @@ fn grad3(
 
 fn fastFloor(x: f64) i32 {
     const xi = @as(i32, @intFromFloat(x));
-    if (x < @as(f64, xi)) {
+    if (x < @as(f64, @floatFromInt(xi))) {
         return xi - 1;
     } else {
         return xi;
