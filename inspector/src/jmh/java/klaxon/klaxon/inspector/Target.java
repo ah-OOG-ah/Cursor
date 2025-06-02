@@ -57,7 +57,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @Measurement(time = 2, timeUnit = TimeUnit.SECONDS)
 @Warmup(iterations = 3, time = 2, timeUnit = TimeUnit.SECONDS)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-@Fork(0)
+@Fork(1)
 public class Target {
 
     private static MethodHandle zmh_populateNoiseArray;
