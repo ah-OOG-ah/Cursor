@@ -81,6 +81,10 @@ pub export fn populateNoiseArray(
     }
 }
 
+// Theoretically caps out for f64/i64 on AVX-512
+const VLEN = 2;
+const VF64: type = @Vector(VLEN, f64);
+
 pub export fn lazy_populateNoiseArray(
     noiseArray: [*]f64,
     xOffset: f64, yOffset: f64, zOffset: f64,
@@ -89,31 +93,72 @@ pub export fn lazy_populateNoiseArray(
     noiseScale: f64, seed: i64) void {
     @setFloatMode(.optimized);
     const bLen = @as(usize, @intCast(xSize * ySize * zSize));
+    const vbLen = bLen / VLEN;
     var buffer = noiseArray[0..bLen];
 
-    const xMax = @as(usize, @intCast(xSize));
-    const yMax = @as(usize, @intCast(ySize));
-    const zMax = @as(usize, @intCast(zSize));
+    var px: usize = 0;
+    var py: usize = 0;
+    var pz: usize = 0;
 
-    for (0..xMax) |px| {
+    for (0..vbLen) |i| {
+
+        var fxs: VF64 = undefined;
+        var fys: VF64 = undefined;
+        var fzs: VF64 = undefined;
+        for (0..VLEN) |ii| {
+            fxs[ii] = @as(f64, @floatFromInt(px)) * xScale + xOffset;
+            fys[ii] = @as(f64, @floatFromInt(py)) * yScale + yOffset;
+            fzs[ii] = @as(f64, @floatFromInt(pz)) * zScale + zOffset;
+
+            py += 1;
+            if (py > ySize) {
+                py = 0; pz += 1;
+                if (pz > zSize) {
+                    pz = 0;
+                    px += 1;
+                }
+            }
+        }
+
+        // Imitate Minecraft's lazy noise, and just scale up the old one
+        // Mix up the seed every 0.5 in the y, roughly, again to imitate MC
+        const tys = fys * @as(VF64, @splat(2));
+        var extraScale = tys - @floor(tys); // map y value to -1, 1, doubling so that -0.49 maps to -.98
+
+        // invert if negative, now it's 0, 1
+        extraScale = @select(f64, extraScale < @as(VF64, @splat(0)), extraScale + @as(VF64, @splat(1)), extraScale);
+        extraScale = @as(VF64, @splat(1)) + extraScale * @as(VF64, @splat(0.5)); // lerp the extra scale from 1 to 1.5 based on this
+
+        // Add 1 to the seed for every .5 bump in the y
+        const ftys = @floor(tys);
+        for (0..VLEN) |ii| {
+            buffer[i * VLEN + ii] = opensimplex.noise2(seed +% @as(i64, @intFromFloat(ftys[ii])) *% 87178291199, fxs[ii], fzs[ii]) * noiseScale * extraScale[ii];
+        }
+    }
+
+    const remaining = bLen % VLEN;
+    for ((bLen - remaining)..bLen) |i| {
+
         const fx = @as(f64, @floatFromInt(px)) * xScale + xOffset;
+        const fy = @as(f64, @floatFromInt(py)) * yScale + yOffset;
+        const fz = @as(f64, @floatFromInt(pz)) * zScale + zOffset;
 
-        for (0..yMax) |py| {
-            const fy = @as(f64, @floatFromInt(py)) * yScale + yOffset;
+        // Imitate Minecraft's lazy noise, and just scale up the old one
+        // Mix up the seed every 0.5 in the y, roughly, again to imitate MC
+        const ty = fy * 2;
+        var extraScale = ty - @floor(ty); // map y value to -1, 1, doubling so that -0.49 maps to -.98
+        if (extraScale < 0) extraScale += 1; // invert if negative, now it's 0, 1
+        extraScale = 1.0 + extraScale * 0.5; // lerp the extra scale from 1 to 1.5 based on this
 
-            for (0..zMax) |pz| {
-                const fz = @as(f64, @floatFromInt(pz)) * zScale + zOffset;
-                const bidx = py + px * yMax + pz * xMax * yMax;
+        // Add 1 to the seed for every .5 bump in the y
+        buffer[i] = opensimplex.noise2(seed +% @as(i64, @intFromFloat(@floor(ty))) *% 87178291199, fx, fz) * noiseScale * extraScale;
 
-                // Imitate Minecraft's lazy noise, and just scale up the old one
-                // Mix up the seed every 0.5 in the y, roughly, again to imitate MC
-                const ty = fy * 2;
-                var extraScale = ty - @floor(ty); // map y value to -1, 1, doubling so that -0.49 maps to -.98
-                if (extraScale < 0) extraScale += 1; // invert if negative, now it's 0, 1
-                extraScale = 1 + extraScale * 0.5; // lerp the extra scale from 1 to 1.5 based on this
-
-                // Add 1 to the seed for every .5 bump in the y
-                buffer[bidx] = opensimplex.noise2(seed +% @as(i64, @intFromFloat(@floor(ty))) *% 87178291199, fx, fz) * noiseScale * extraScale;
+        py += 1;
+        if (py > ySize) {
+            py = 0; px += 1;
+            if (px > xSize) {
+                px = 0;
+                pz += 1;
             }
         }
     }

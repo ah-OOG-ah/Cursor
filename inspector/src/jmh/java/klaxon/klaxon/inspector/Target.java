@@ -133,9 +133,10 @@ public class Target {
         final int RL = noise.length / SIZE;
         printNoiseResults(noise, RL, false);
         writeNoiseAsPNG(noise, new File("mc.png"), SIZE, THIN ? thith : SIZE, SIZE);
+        Arrays.fill(noise, 0.0);
 
         setup();
-        populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, YSCALE, SCALE, 1.0, 1337);
+        lazy_populateNoiseArray(noise, 0, 0, 0, SIZE, THIN ? thith : SIZE, SIZE, SCALE, YSCALE, SCALE, 1.0, 1337);
         printNoiseResults(noise, RL, false);
         writeNoiseAsPNG(noise, new File("mine.png"), SIZE, THIN ? thith : SIZE, SIZE);
 
