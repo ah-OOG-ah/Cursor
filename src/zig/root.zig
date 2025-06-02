@@ -93,51 +93,13 @@ pub export fn lazy_populateNoiseArray(
     noiseScale: f64, seed: i64) void {
     @setFloatMode(.optimized);
     const bLen = @as(usize, @intCast(xSize * ySize * zSize));
-    const vbLen = bLen / VLEN;
     var buffer = noiseArray[0..bLen];
 
     var px: usize = 0;
     var py: usize = 0;
     var pz: usize = 0;
 
-    for (0..vbLen) |i| {
-
-        var fxs: VF64 = undefined;
-        var fys: VF64 = undefined;
-        var fzs: VF64 = undefined;
-        for (0..VLEN) |ii| {
-            fxs[ii] = @as(f64, @floatFromInt(px)) * xScale + xOffset;
-            fys[ii] = @as(f64, @floatFromInt(py)) * yScale + yOffset;
-            fzs[ii] = @as(f64, @floatFromInt(pz)) * zScale + zOffset;
-
-            py += 1;
-            if (py > ySize) {
-                py = 0; pz += 1;
-                if (pz > zSize) {
-                    pz = 0;
-                    px += 1;
-                }
-            }
-        }
-
-        // Imitate Minecraft's lazy noise, and just scale up the old one
-        // Mix up the seed every 0.5 in the y, roughly, again to imitate MC
-        const tys = fys * @as(VF64, @splat(2));
-        var extraScale = tys - @floor(tys); // map y value to -1, 1, doubling so that -0.49 maps to -.98
-
-        // invert if negative, now it's 0, 1
-        extraScale = @select(f64, extraScale < @as(VF64, @splat(0)), extraScale + @as(VF64, @splat(1)), extraScale);
-        extraScale = @as(VF64, @splat(1)) + extraScale * @as(VF64, @splat(0.5)); // lerp the extra scale from 1 to 1.5 based on this
-
-        // Add 1 to the seed for every .5 bump in the y
-        const ftys = @floor(tys);
-        for (0..VLEN) |ii| {
-            buffer[i * VLEN + ii] = opensimplex.noise2(seed +% @as(i64, @intFromFloat(ftys[ii])) *% 87178291199, fxs[ii], fzs[ii]) * noiseScale * extraScale[ii];
-        }
-    }
-
-    const remaining = bLen % VLEN;
-    for ((bLen - remaining)..bLen) |i| {
+    for (0..buffer.len) |i| {
 
         const fx = @as(f64, @floatFromInt(px)) * xScale + xOffset;
         const fy = @as(f64, @floatFromInt(py)) * yScale + yOffset;
