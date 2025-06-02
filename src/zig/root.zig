@@ -98,8 +98,14 @@ pub export fn lazy_populateNoiseArray(
     var px: usize = 0;
     var py: usize = 0;
     var pz: usize = 0;
+    const xMax = @as(usize, @intCast(xSize));
+    const yMax = @as(usize, @intCast(ySize));
 
     for (0..buffer.len) |i| {
+        // Assign indices
+        py = i % yMax; // goes up by one each iteration
+        px = (i / yMax) % xMax; // up by one each ySize iterations
+        pz = i / yMax / xMax; // up by one each ySize * xSize iterations
 
         const fx = @as(f64, @floatFromInt(px)) * xScale + xOffset;
         const fy = @as(f64, @floatFromInt(py)) * yScale + yOffset;
@@ -114,15 +120,6 @@ pub export fn lazy_populateNoiseArray(
 
         // Add 1 to the seed for every .5 bump in the y
         buffer[i] = opensimplex.noise2(seed +% @as(i64, @intFromFloat(@floor(ty))) *% 87178291199, fx, fz) * noiseScale * extraScale;
-
-        py += 1;
-        if (py > ySize) {
-            py = 0; px += 1;
-            if (px > xSize) {
-                px = 0;
-                pz += 1;
-            }
-        }
     }
 }
 
