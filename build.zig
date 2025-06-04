@@ -40,7 +40,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const exe = b.addExecutable(.{
-        .name = "Cursor",
+        .name = "cbench",
         .root_source_file = b.path("src/zig/main.zig"),
         .target = target,
         .optimize = optimize,
