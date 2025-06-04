@@ -422,7 +422,7 @@ fn grad2(seed: i64, xsvp: i64, ysvp: i64, dx: f32, dy: f32) f32 {
     var hash = seed ^ xsvp ^ ysvp;
     hash *%= HASH_MULTIPLIER;
     hash ^= hash >> (64 - N_GRADS_2D_EXPONENT + 1);
-    const gi = @as(usize, @intCast(@as(i32, @intCast(hash)) & ((N_GRADS_2D - 1) << 1)));
+    const gi = @as(usize, @intCast(@as(i32, @truncate(hash)) & ((N_GRADS_2D - 1) << 1)));
     const grads = GRADIENTS.gradients2D;
     return grads[gi | 0] * dx + grads[gi | 1] * dy;
 }
