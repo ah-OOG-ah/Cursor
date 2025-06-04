@@ -39,3 +39,5 @@ layout.json
 .zig-cache
 zig-out
 *.png
+vgcore*
+cachegrind*
